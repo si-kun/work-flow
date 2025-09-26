@@ -3,15 +3,26 @@
 import { useAtomValue } from "jotai";
 import EmployeeDialog from "../components/dialog/EmployeeDialog";
 import { EMPLOYEES_TABLE_HEADER } from "../constants/employee";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { allUsers } from "@/atom/userAtom";
 import { useFetchAllUsers } from "@/lib/fetchAllUser";
 
 export default function Home() {
   useFetchAllUsers();
   const [openEmployeeDialog, setOpenEmployeeDialog] = useState(false);
+  const [editEmployeeId, setEditEmployeeId] = useState<string | null>(null);
 
   const allUser = useAtomValue(allUsers);
+
+  const editEmployee = useMemo(
+    () => allUser.find((user) => user.id === editEmployeeId) || null,
+    [allUser, editEmployeeId]
+  );
+
+  const handeleEditTarget = (id: string) => {
+    setEditEmployeeId((prev) => (prev === id ? null : id));
+    setOpenEmployeeDialog(true);
+  };
 
   return (
     <div className="w-full h-screen overflow-hidden flex flex-col">
@@ -20,6 +31,9 @@ export default function Home() {
         <EmployeeDialog
           openEmployeeDialog={openEmployeeDialog}
           setOpenEmployeeDialog={setOpenEmployeeDialog}
+          mode={editEmployeeId ? "edit" : "add"}
+          editEmployee={editEmployee}
+          setEditEmployeeId={setEditEmployeeId}
         />
       </header>
       {/* ヘッダーナビ */}
@@ -52,6 +66,7 @@ export default function Home() {
               <div
                 className="flex border-b border-slate-300  hover:bg-slate-100 hover:cursor-pointer"
                 key={employee.name}
+                onClick={() => handeleEditTarget(employee.id)}
               >
                 {cellData.map((data, index) => (
                   <span

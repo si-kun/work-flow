@@ -31,27 +31,35 @@ import {
 } from "@/components/ui/popover";
 import { EmployeeFormData, employeeSchema } from "@/types/employee/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import ErrorText from "../errorText/ErrorText";
 import { ChevronDownIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { addEmployee } from "@/actions/auth/addEmployee";
-import { useSetAtom } from "jotai";
+import { useAtom } from "jotai";
 import { allUsers } from "@/atom/userAtom";
+import { User } from "@prisma/client";
+import { updateEmployee } from "@/actions/auth/updateEmployee";
 
 interface EmployeeDialogProps {
   openEmployeeDialog: boolean;
   setOpenEmployeeDialog: Dispatch<SetStateAction<boolean>>;
+  mode: "add" | "edit";
+  editEmployee: User | null;
+  setEditEmployeeId?: Dispatch<SetStateAction<string | null>>;
 }
 
 const EmployeeDialog = ({
   openEmployeeDialog,
   setOpenEmployeeDialog,
+  mode,
+  editEmployee,
+  setEditEmployeeId,
 }: EmployeeDialogProps) => {
   const [open, setOpen] = useState(false);
 
-  const setAllUsers = useSetAtom(allUsers);
+  const [allUser, setAllUser] = useAtom(allUsers);
 
   const {
     register,
@@ -62,26 +70,84 @@ const EmployeeDialog = ({
   } = useForm<EmployeeFormData>({
     resolver: zodResolver(employeeSchema),
     mode: "onChange",
-    defaultValues: {
-      name: "",
-      email: "",
-      department: "",
-      position: "",
-      joinDate: undefined,
-      isActive: "Employment",
-    },
   });
 
+  useEffect(() => {
+    if (mode === "edit" && editEmployee) {
+      reset({
+        name: editEmployee.name,
+        email: editEmployee.email,
+        department: editEmployee.department,
+        position: editEmployee.position,
+        joinDate: editEmployee.joinDate
+          ? new Date(editEmployee.joinDate)
+          : undefined,
+        isActive: editEmployee.isActive as
+          | "Employment"
+          | "Leave"
+          | "Retirement"
+          | "PlannedJoining",
+      });
+    } else if (mode === "add") {
+      reset({
+        name: "",
+        email: "",
+        department: "",
+        position: "",
+        joinDate: undefined,
+        isActive: "Employment",
+      });
+    }
+  }, [editEmployee, mode, reset]);
+
+  const buttonText = () => {
+    switch (mode) {
+      case "add":
+        switch (isSubmitting) {
+          case true:
+            return "登録中...";
+          case false:
+            return "登録する";
+        }
+      case "edit":
+        switch (isSubmitting) {
+          case true:
+            return "更新中...";
+          case false:
+            return "更新する";
+        }
+    }
+  };
+
+  // フォーム送信時の処理
   const onSubmit = async (data: EmployeeFormData) => {
     try {
-      const result = await addEmployee(data);
+      if (mode === "edit" && editEmployee) {
+        // 変更がなかったら何も更新しない
+        if (JSON.stringify(data) === JSON.stringify(editEmployee)) {
+          setOpenEmployeeDialog(false);
+          console.log("変更されませんでした");
+        } else {
+          const result = await updateEmployee(editEmployee.id, data);
 
-      if(result.success) {
-        setAllUsers((prev) => [...prev, result.data!]);
-        reset();
-        setOpenEmployeeDialog(false);
+          if (result.success) {
+            setAllUser((prev) =>
+              prev.map((user) =>
+                user.id === editEmployee.id ? { ...user, ...data } : user
+              )
+            );
+          }
+        }
+      } else {
+        const result = await addEmployee(data);
+
+        if (result.success) {
+          setAllUser((prev) => [...prev, result.data!]);
+        }
       }
-    } catch(error) {
+      reset();
+      setOpenEmployeeDialog(false);
+    } catch (error) {
       console.error("Error adding employee:", error);
     }
   };
@@ -219,7 +285,9 @@ const EmployeeDialog = ({
                           id="date"
                           className="w-full justify-between font-normal"
                         >
-                          {field.value ? field.value.toLocaleDateString() : "Select date"}
+                          {field.value
+                            ? field.value.toLocaleDateString()
+                            : "Select date"}
                           <ChevronDownIcon />
                         </Button>
                       </PopoverTrigger>
@@ -242,10 +310,7 @@ const EmployeeDialog = ({
                 )}
               />
             ) : (
-              <div
-                key={inputField.name}
-                className="flex flex-col gap-2 w-full"
-              >
+              <div key={inputField.name} className="flex flex-col gap-2 w-full">
                 <div className="flex items-center gap-3">
                   <Label>{inputField.label}</Label>
                   {errors[inputField.name] && (
@@ -267,10 +332,23 @@ const EmployeeDialog = ({
             )
           )}
           <DialogFooter>
-            <Button disabled={!isValid} variant={"outline"} className="bg-green-400" type="submit">
-              {isSubmitting ? "登録中..." : "登録する"}
+            <Button
+              disabled={!isValid}
+              variant={"outline"}
+              className="bg-green-400"
+              type="submit"
+            >
+              {buttonText()}
             </Button>
-            <DialogClose asChild>
+            <DialogClose
+              asChild
+              onClick={() => {
+                setOpenEmployeeDialog(false);
+                if (setEditEmployeeId) {
+                  setEditEmployeeId(null);
+                }
+              }}
+            >
               <Button variant={"secondary"}>Close</Button>
             </DialogClose>
           </DialogFooter>
