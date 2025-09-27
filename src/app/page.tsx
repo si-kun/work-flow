@@ -3,14 +3,19 @@
 import { useAtomValue } from "jotai";
 import EmployeeDialog from "../components/dialog/EmployeeDialog";
 import { EMPLOYEES_TABLE_HEADER } from "../constants/employee";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { allUsers } from "@/atom/userAtom";
 import { useFetchAllUsers } from "@/lib/fetchAllUser";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
+import { User } from "@prisma/client";
 
 export default function Home() {
   useFetchAllUsers();
   const [openEmployeeDialog, setOpenEmployeeDialog] = useState(false);
   const [editEmployeeId, setEditEmployeeId] = useState<string | null>(null);
+  const [searchEmployee, setSearchEmployee] = useState<string>("");
+  const [targetEmployee, setTargetEmployee] = useState<User[]>([]);
 
   const allUser = useAtomValue(allUsers);
 
@@ -24,10 +29,33 @@ export default function Home() {
     setOpenEmployeeDialog(true);
   };
 
+  // searchEmployeeが変わるたびに実行
+  useEffect(() => {
+    if (searchEmployee === "") {
+      setTargetEmployee(allUser);
+      return;
+    }
+
+    setTargetEmployee(() => {
+      return allUser.filter((user) =>
+        user.name.toLowerCase().includes(searchEmployee.toLowerCase())
+      );
+    })
+  },[searchEmployee, allUser])
+
   return (
     <div className="w-full h-screen overflow-hidden flex flex-col">
       <header className="flex items-center p-5">
         <h1 className="text-lg font-bold">社員一覧</h1>
+        <div className="ml-auto relative">
+          <Search className="absolute top-[50%] left-2 transform -translate-y-[50%]  text-gray-400" />
+          <Input
+            className="pl-10"
+            placeholder="従業員名を検索"
+            value={searchEmployee}
+            onChange={(e) => setSearchEmployee(e.target.value)}
+          />
+        </div>
         <EmployeeDialog
           openEmployeeDialog={openEmployeeDialog}
           setOpenEmployeeDialog={setOpenEmployeeDialog}
@@ -51,8 +79,8 @@ export default function Home() {
         </div>
 
         {/* データ部分 */}
-        <div className=" h-full">
-          {allUser.map((employee) => {
+        <div className="flex-1">
+          {targetEmployee.map((employee) => {
             const cellData = [
               employee.name,
               employee.department,

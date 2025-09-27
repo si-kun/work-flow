@@ -29,6 +29,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { EmployeeFormData, employeeSchema } from "@/types/employee/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
@@ -37,10 +49,11 @@ import ErrorText from "../errorText/ErrorText";
 import { ChevronDownIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { addEmployee } from "@/actions/auth/addEmployee";
-import { useAtom } from "jotai";
+import { useSetAtom } from "jotai";
 import { allUsers } from "@/atom/userAtom";
 import { User } from "@prisma/client";
 import { updateEmployee } from "@/actions/auth/updateEmployee";
+import { deleteEmployee } from "@/actions/auth/deleteEmployee";
 
 interface EmployeeDialogProps {
   openEmployeeDialog: boolean;
@@ -58,8 +71,9 @@ const EmployeeDialog = ({
   setEditEmployeeId,
 }: EmployeeDialogProps) => {
   const [open, setOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
-  const [allUser, setAllUser] = useAtom(allUsers);
+  const setAllUser = useSetAtom(allUsers);
 
   const {
     register,
@@ -123,45 +137,71 @@ const EmployeeDialog = ({
   const onSubmit = async (data: EmployeeFormData) => {
     try {
       if (mode === "edit" && editEmployee) {
-        // 変更がなかったら何も更新しない
-        if (JSON.stringify(data) === JSON.stringify(editEmployee)) {
-          setOpenEmployeeDialog(false);
-          console.log("変更されませんでした");
-        } else {
-          const result = await updateEmployee(editEmployee.id, data);
+        const result = await updateEmployee(editEmployee.id, data);
 
-          if (result.success) {
-            setAllUser((prev) =>
-              prev.map((user) =>
-                user.id === editEmployee.id ? { ...user, ...data } : user
-              )
-            );
-          }
+        if (result.success) {
+          setAllUser((prev) =>
+            prev.map((user) =>
+              user.id === editEmployee.id ? { ...user, ...data } : user
+            )
+          );
+          console.log("更新完了:", result.message);
+          reset();
+          setOpenEmployeeDialog(false);
+        } else {
+          console.error("更新失敗:", result.message);
         }
       } else {
         const result = await addEmployee(data);
 
         if (result.success) {
           setAllUser((prev) => [...prev, result.data!]);
+          console.log("登録完了:", result.message);
+          reset();
+          setOpenEmployeeDialog(false);
+        } else {
+          console.error("登録失敗:", result.message);
         }
       }
-      reset();
-      setOpenEmployeeDialog(false);
+
+      // reset();
+      // setOpenEmployeeDialog(false);
     } catch (error) {
-      console.error("Error adding employee:", error);
+      console.error("予期しないエラー:", error);
     }
   };
 
+  // デリート処理
+  const handleDelete = async() => {
+    try {
+
+      const result = await deleteEmployee(editEmployee!.id);
+
+      if (result.success) {
+        setAllUser((prev) => prev.filter((user) => user.id !== editEmployee!.id));
+        if (setEditEmployeeId) {
+          setEditEmployeeId(null);
+        }
+      }
+      setDeleteConfirmOpen(false);
+      setOpenEmployeeDialog(false);
+    } catch(error) {
+      console.error("予期しないエラー:", error);
+    }
+  }
+
   return (
     <Dialog open={openEmployeeDialog} onOpenChange={setOpenEmployeeDialog}>
-      <DialogTrigger className="ml-auto bg-green-300 p-2 rounded-lg">
-        従業員を追加する
+      <DialogTrigger className="bg-green-300 p-2 rounded-lg">
+        {mode === "add" ? "従業員を追加" : "従業員情報を編集"}
       </DialogTrigger>
       <DialogContent className="">
         <DialogHeader>
           <DialogTitle>新規従業員を登録する</DialogTitle>
           <DialogDescription>
-            追加する従業員の情報を入力してください。
+            {mode === "add"
+              ? "新規従業員を登録します。必要な情報を入力してください。"
+              : "従業員情報を編集します。必要な情報を入力してください。"}
           </DialogDescription>
         </DialogHeader>
 
@@ -332,6 +372,7 @@ const EmployeeDialog = ({
             )
           )}
           <DialogFooter>
+            {/* submit button */}
             <Button
               disabled={!isValid}
               variant={"outline"}
@@ -340,6 +381,29 @@ const EmployeeDialog = ({
             >
               {buttonText()}
             </Button>
+            {/* delete button */}
+            {mode === "edit" && editEmployee && (
+              <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button variant={"destructive"}>削除</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      {`本当に${editEmployee.name}を削除しますか？`}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      この操作は元に戻せません。削除すると、関連するすべてのデータが失われます。
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setDeleteConfirmOpen(false)}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction className="bg-red-700" onClick={() => handleDelete()}>削除する</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+            {/* close button */}
             <DialogClose
               asChild
               onClick={() => {
