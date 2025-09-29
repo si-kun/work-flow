@@ -125,6 +125,7 @@ export default function Home() {
       <div className="flex-1 h-full overflow-y-auto">
         {/* ヘッダー部分 */}
         <div className="bg-slate-50 border border-slate-300 flex sticky top-0 z-10">
+          <span></span>
           {EMPLOYEES_TABLE_HEADER.map((header, idx) => (
             <span
               key={header.id}

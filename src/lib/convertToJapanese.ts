@@ -1,3 +1,5 @@
+import { User } from "@prisma/client";
+
 // 部署を英語から日本語に変換する関数
 export const convertDepartmentToJapanese = (englishDepartment: string): string => {
     const departmentMap: { [key: string]: string } = {
@@ -52,7 +54,7 @@ export const convertStatusToJapanese = (englishStatus: string): string => {
 
 
   // それぞれの部署の人数をカウント
-  export const getDepartmentCounts = (users: any[]) => {
+  export const getDepartmentCounts = (users: User[]) => {
     const counts: { [key: string]: number} = {};
 
     users.forEach((user) => {
