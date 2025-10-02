@@ -3,7 +3,9 @@
 import Calendar from "@/components/calendar/Calendar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SHIFT_SETTINGS } from "@/constants/attendance";
 import { determineClockInType } from "@/utils/attendanceUtils";
+import { formatTime, restOneHour, timeToMinutes } from "@/utils/timeUtils";
 import React, { useEffect, useState } from "react";
 
 type WorkStatus = "day_working" | "night_working" | "rest" | "leave";
@@ -42,6 +44,8 @@ const Attendance = () => {
   const nowDisplay = `${hours}時${minutes}分${seconds}秒`;
 
   const [workStatus, setWorkStatus] = useState<WorkStatus>("leave");
+  const [previousWorkStatus, setPreviousWorkStatus] =
+    useState<WorkStatus>("leave");
 
   const [todayAttendance, setTodayAttendance] = useState({
     workStatus: "",
@@ -50,6 +54,7 @@ const Attendance = () => {
     calculationStart: "",
     workEnd: "",
     restStart: "",
+    restEnd: "",
     overTime: "",
   });
 
@@ -72,6 +77,7 @@ const Attendance = () => {
     const currentTime = `${hours.toString().padStart(2, "0")}:${minutes
       .toString()
       .padStart(2, "0")}`;
+    // 日勤時の処理
     if (buttonText === "出勤") {
       const result = determineClockInType(currentTime, "day_working");
       setWorkStatus("day_working");
@@ -82,7 +88,9 @@ const Attendance = () => {
         workStartType: result.type,
         calculationStart: result.calculationTime,
       }));
-    } else if (buttonText === "夜勤") {
+    }
+    // 夜勤時の処理
+    else if (buttonText === "夜勤") {
       const result = determineClockInType(currentTime, "night_working");
       setWorkStatus("night_working");
       setTodayAttendance((prev) => ({
@@ -92,14 +100,20 @@ const Attendance = () => {
         workStartType: result.type,
         calculationStart: result.calculationTime,
       }));
-    } else if ((e.target as HTMLButtonElement).textContent === "休憩") {
+    }
+    // 休憩時の処理
+    else if (buttonText === "休憩") {
       setWorkStatus("rest");
+      setPreviousWorkStatus(workStatus);
       setTodayAttendance((prev) => ({
         ...prev,
         workStatus: "rest",
-        restStart: `${hours}:${minutes}`,
+        restStart: currentTime,
+        restEnd: restOneHour(currentTime),
       }));
-    } else if ((e.target as HTMLButtonElement).textContent === "退勤") {
+    }
+    // 退勤時の処理
+    else if (buttonText === "退勤") {
       setWorkStatus("leave");
       setTodayAttendance((prev) => ({
         ...prev,
@@ -109,10 +123,30 @@ const Attendance = () => {
     }
   };
 
-  // デバッグuseEffect
+  // 休憩時間の自動終了チェック
   useEffect(() => {
-    console.log(workStatus);
-  }, [workStatus]);
+    if (workStatus !== "rest" || !todayAttendance.restEnd) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+
+      const currentTime = formatTime(hours, minutes);
+      const currentMinutes = timeToMinutes(currentTime);
+      const restEndMinutes = timeToMinutes(todayAttendance.restEnd);
+
+      if (currentMinutes >= restEndMinutes) {
+        setWorkStatus(previousWorkStatus);
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workStatus, todayAttendance.restEnd, previousWorkStatus]);
 
   return (
     <div className="p-10 grid grid-cols-2 gap-10 h-screen overflow-hidden">
@@ -149,7 +183,9 @@ const Attendance = () => {
               className="w-[70px] h-[70px] rounded-full bg-orange-400 hover:bg-orange-300 text-white hover:text-white"
               onClick={(e) => handleWorking(e)}
               disabled={
-                workStatus !== "day_working" && workStatus !== "night_working"
+                !(
+                  workStatus === "day_working" || workStatus === "night_working"
+                ) || todayAttendance.restStart !== ""
               }
             >
               休憩
@@ -267,20 +303,43 @@ const Attendance = () => {
                   <span>出勤:</span>
                   <span>{todayAttendance.workStart}</span>
                   {todayAttendance.workStartType === "early_arrival" && (
-                    <span>(早出)</span>
+                    <span className="text-green-500 text-xs font-bold">
+                      (早出)
+                    </span>
                   )}
                   {todayAttendance.workStartType === "late" && (
-                    <span>(遅刻)</span>
+                    <span className="text-red-500 text-xs font-bold">
+                      (遅刻)
+                    </span>
                   )}
                 </div>
                 <div>
                   <span>退勤:</span>
                   <span>{todayAttendance.workEnd}</span>
+                  {todayAttendance.workEnd &&
+                    (workStatus === "day_working" || workStatus === "leave") &&
+                    timeToMinutes(todayAttendance.workEnd) <
+                      timeToMinutes(SHIFT_SETTINGS.day_working.end) && (
+                      <span className="text-blue-500 text-xs font-bold">
+                        (早退)
+                      </span>
+                    )}
+                  {todayAttendance.workEnd &&
+                    (workStatus === "night_working" ||
+                      workStatus === "leave") &&
+                    timeToMinutes(todayAttendance.workEnd) <
+                      timeToMinutes(SHIFT_SETTINGS.night_working.end) + 1440 && (
+                      <span className="text-blue-500 text-xs font-bold">
+                        (早退)
+                      </span>
+                    )}
                 </div>
 
                 <div>
                   <span>休憩:</span>
-                  <span>{todayAttendance.restStart}</span>
+                  <span>
+                    {todayAttendance.restStart} - {todayAttendance.restEnd}
+                  </span>
                 </div>
                 <div>
                   <span>残業:</span>
