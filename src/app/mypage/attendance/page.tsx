@@ -3,10 +3,12 @@
 import Calendar from "@/components/calendar/Calendar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SHIFT_SETTINGS } from "@/constants/attendance";
+import { AttendanceData } from "@/types/attendance";
 import { determineClockInType } from "@/utils/attendanceUtils";
-import { formatTime, restOneHour, timeToMinutes } from "@/utils/timeUtils";
+import { formatTime, minutesToTime, restOneHour, timeToMinutes } from "@/utils/timeUtils";
 import React, { useEffect, useState } from "react";
+import AttendanceCard from "./components/AttendanceCard";
+import { format } from "date-fns";
 
 type WorkStatus = "day_working" | "night_working" | "rest" | "leave";
 
@@ -23,39 +25,43 @@ const Attendance = () => {
   const [overtimeHours, setOvertimeHours] = useState(0);
   // 欠勤日数
   const [absentDays, setAbsentDays] = useState(0);
+  // 選択されたシフトタイプ
+  const [currentShiftType, setCurrentShiftType] = useState<
+    "day_working" | "night_working" | null
+  >(null);
 
   // 現在の日時
   const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const date = now.getDate();
-  const day = now.getDay();
-
-  // 時間
-  const hours = now.getHours();
-  const minutes = now.getMinutes();
-  const seconds = now.getSeconds();
-
-  // 曜日の配列
-  const daysOfWeek = ["日", "月", "火", "水", "木", "金", "土"];
-  const dayOfWeek = daysOfWeek[day];
-
-  // 時間表示の定数
-  const nowDisplay = `${hours}時${minutes}分${seconds}秒`;
+  const nowDisplay = format(now, "HH:mm:ss");
 
   const [workStatus, setWorkStatus] = useState<WorkStatus>("leave");
   const [previousWorkStatus, setPreviousWorkStatus] =
     useState<WorkStatus>("leave");
 
-  const [todayAttendance, setTodayAttendance] = useState({
-    workStatus: "",
+  const [todayAttendance, setTodayAttendance] = useState<AttendanceData>({
+    date: format(now, "yyyy-MM-dd"),
+    workType: null,
     workStart: "",
-    workStartType: "" as "early_arrival" | "on_time" | "late" | "",
+    workStartType: null,
     calculationStart: "",
     workEnd: "",
+    workEndType: null,
     restStart: "",
     restEnd: "",
-    overTime: "",
+    overtimeMinutes: 0,
+  });
+
+  const [selectedAttendance, setSelectedAttendance] = useState<AttendanceData>({
+    date: "",
+    workType: null,
+    workStart: "",
+    workStartType: null,
+    calculationStart: "",
+    workEnd: "",
+    workEndType: null,
+    restStart: "",
+    restEnd: "",
+    overtimeMinutes: 0,
   });
 
   // 現在のステータスによってカラーを変える
@@ -74,13 +80,12 @@ const Attendance = () => {
 
   const handleWorking = (e: React.MouseEvent<HTMLButtonElement>) => {
     const buttonText = (e.target as HTMLButtonElement).textContent;
-    const currentTime = `${hours.toString().padStart(2, "0")}:${minutes
-      .toString()
-      .padStart(2, "0")}`;
+    const currentTime = format(now, "HH:mm");
     // 日勤時の処理
     if (buttonText === "出勤") {
       const result = determineClockInType(currentTime, "day_working");
       setWorkStatus("day_working");
+      setCurrentShiftType("day_working");
       setTodayAttendance((prev) => ({
         ...prev,
         workStatus: "day_working",
@@ -93,6 +98,7 @@ const Attendance = () => {
     else if (buttonText === "夜勤") {
       const result = determineClockInType(currentTime, "night_working");
       setWorkStatus("night_working");
+      setCurrentShiftType("night_working");
       setTodayAttendance((prev) => ({
         ...prev,
         workStatus: "night_working",
@@ -156,7 +162,7 @@ const Attendance = () => {
         <div className="flex items-center gap-4">
           <div className="flex flex-col">
             <span>
-              今日は{year}年{month + 1}月{date}日{dayOfWeek}曜日
+              今日は{format(now, `yyyy年MM月dd日(eee)`)}
             </span>
             <span>現在の時刻は{nowDisplay}です。</span>
           </div>
@@ -225,12 +231,12 @@ const Attendance = () => {
         {/* ======== 出退勤ボタンなどのエリア ======== */}
         {/* ======== 表示するカレンダーのエリア ======== */}
         <Calendar
-          setPaidLeaveDays={setPaidLeaveDays}
           setAcquiredPaidLeaveDays={setAcquiredPaidLeaveDays}
           setWorkingHours={setWorkingHours}
           setOvertimeHours={setOvertimeHours}
           setAbsentDays={setAbsentDays}
           setNightShiftHours={setNightShiftHours}
+          setSelectedAttendance={setSelectedAttendance}
         />
         {/* ======== 表示するカレンダーのエリア ======== */}
       </div>
@@ -273,14 +279,14 @@ const Attendance = () => {
                   <CardTitle>出勤時間</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {workingHours}時間 (夜勤:{nightShiftHours}時間)
+                  {minutesToTime(workingHours)} (夜勤:{minutesToTime(nightShiftHours)})
                 </CardContent>
               </Card>
               <Card className="flex-1">
                 <CardHeader>
                   <CardTitle>残業時間</CardTitle>
                 </CardHeader>
-                <CardContent>{overtimeHours}時間</CardContent>
+                <CardContent>{minutesToTime(overtimeHours)}</CardContent>
               </Card>
               <Card className="flex-1">
                 <CardHeader>
@@ -292,61 +298,10 @@ const Attendance = () => {
           </div>
           {/* カード群 */}
 
-          {/* 当日の勤怠データ */}
-          <div>
-            <Card className="w-[200px] flex flex-col gap-2">
-              <CardHeader>
-                <span>当日の勤怠データ</span>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-2">
-                <div>
-                  <span>出勤:</span>
-                  <span>{todayAttendance.workStart}</span>
-                  {todayAttendance.workStartType === "early_arrival" && (
-                    <span className="text-green-500 text-xs font-bold">
-                      (早出)
-                    </span>
-                  )}
-                  {todayAttendance.workStartType === "late" && (
-                    <span className="text-red-500 text-xs font-bold">
-                      (遅刻)
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <span>退勤:</span>
-                  <span>{todayAttendance.workEnd}</span>
-                  {todayAttendance.workEnd &&
-                    (workStatus === "day_working" || workStatus === "leave") &&
-                    timeToMinutes(todayAttendance.workEnd) <
-                      timeToMinutes(SHIFT_SETTINGS.day_working.end) && (
-                      <span className="text-blue-500 text-xs font-bold">
-                        (早退)
-                      </span>
-                    )}
-                  {todayAttendance.workEnd &&
-                    (workStatus === "night_working" ||
-                      workStatus === "leave") &&
-                    timeToMinutes(todayAttendance.workEnd) <
-                      timeToMinutes(SHIFT_SETTINGS.night_working.end) + 1440 && (
-                      <span className="text-blue-500 text-xs font-bold">
-                        (早退)
-                      </span>
-                    )}
-                </div>
-
-                <div>
-                  <span>休憩:</span>
-                  <span>
-                    {todayAttendance.restStart} - {todayAttendance.restEnd}
-                  </span>
-                </div>
-                <div>
-                  <span>残業:</span>
-                  <span>{todayAttendance.overTime}</span>
-                </div>
-              </CardContent>
-            </Card>
+          {/* 勤怠データ */}
+          <div className="flex gap-4">
+            <AttendanceCard todayAttendance={todayAttendance} />
+            <AttendanceCard todayAttendance={selectedAttendance} />
           </div>
         </div>
       </div>

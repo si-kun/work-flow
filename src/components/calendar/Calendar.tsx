@@ -5,379 +5,98 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import jaLocale from "@fullcalendar/core/locales/ja";
 import { minutesToTime, timeToMinutes } from "@/utils/timeUtils";
+import { AttendanceData, CalendarEvent } from "@/types/attendance";
+import { events } from "@/constants/calendarEvents";
+import { SHIFT_SETTINGS } from "@/constants/attendance";
+import { format } from "date-fns";
 
 interface CalendarProps {
-  setPaidLeaveDays: React.Dispatch<React.SetStateAction<number>>;
   setAcquiredPaidLeaveDays: React.Dispatch<React.SetStateAction<number>>;
   setWorkingHours: React.Dispatch<React.SetStateAction<number>>;
   setOvertimeHours: React.Dispatch<React.SetStateAction<number>>;
   setAbsentDays: React.Dispatch<React.SetStateAction<number>>;
   setNightShiftHours: React.Dispatch<React.SetStateAction<number>>;
-}
-
-interface Event {
-  title: string;
-  start: string;
-  end: string;
-  extendedProps: {
-    type: "workday" | "nightShift" | "paid" | "paidPending" | "absenteeism";
-    clockIn: string;
-    clockOut: string;
-    regularEnd: string;
-    breakTime: number;
-  };
+  setSelectedAttendance: React.Dispatch<React.SetStateAction<AttendanceData>>;
 }
 
 const Calendar = ({
-  setPaidLeaveDays,
   setAcquiredPaidLeaveDays,
   setWorkingHours,
   setOvertimeHours,
   setAbsentDays,
   setNightShiftHours,
+  setSelectedAttendance,
 }: CalendarProps) => {
-
-  const events = [
-    // 9月1日 - 通常勤務
-    {
-      title: "勤務",
-      start: "2025-09-01T09:00:00",
-      end: "2025-09-01T18:00:00",
-      extendedProps: {
-        type: "workday",
-        clockIn: "09:00",
-        clockOut: "18:00",
-        regularEnd: "18:00",
-        breakTime: 60,
-      },
-    },
-    // 9月2日 - 残業1時間
-    {
-      title: "勤務",
-      start: "2025-09-02T09:00:00",
-      end: "2025-09-02T19:00:00",
-      extendedProps: {
-        type: "workday",
-        clockIn: "09:00",
-        clockOut: "19:00",
-        regularEnd: "18:00",
-        breakTime: 60,
-      },
-    },
-    // 9月3日 - 通常勤務
-    {
-      title: "勤務",
-      start: "2025-09-03T09:00:00",
-      end: "2025-09-03T18:00:00",
-      extendedProps: {
-        type: "workday",
-        clockIn: "09:00",
-        clockOut: "18:00",
-        regularEnd: "18:00",
-        breakTime: 60,
-      },
-    },
-    // 9月4日 - 残業3時間
-    {
-      title: "勤務",
-      start: "2025-09-04T09:00:00",
-      end: "2025-09-04T21:00:00",
-      extendedProps: {
-        type: "workday",
-        clockIn: "09:00",
-        clockOut: "21:00",
-        regularEnd: "18:00",
-        breakTime: 60,
-      },
-    },
-    // 9月5日 - 通常勤務
-    {
-      title: "勤務",
-      start: "2025-09-05T09:00:00",
-      end: "2025-09-05T18:00:00",
-      extendedProps: {
-        type: "workday",
-        clockIn: "09:00",
-        clockOut: "18:00",
-        regularEnd: "18:00",
-        breakTime: 60,
-      },
-    },
-    // 9月6日・7日 - 土日休み（データなし）
-
-    // 9月8日 - 夜勤（9日6時まで）
-    {
-      title: "夜勤",
-      start: "2025-09-08T22:00:00",
-      end: "2025-09-09T06:00:00",
-      extendedProps: {
-        type: "nightShift",
-        clockIn: "22:00",
-        clockOut: "06:00",
-        regularEnd: "06:00",
-        breakTime: 60,
-      },
-    },
-    // 9月9日 - 夜勤（10日6時まで）
-    {
-      title: "夜勤",
-      start: "2025-09-09T22:00:00",
-      end: "2025-09-10T06:00:00",
-      extendedProps: {
-        type: "nightShift",
-        clockIn: "22:00",
-        clockOut: "06:00",
-        regularEnd: "06:00",
-        breakTime: 60,
-      },
-    },
-    // 9月10日 - 夜勤（11日6時まで）
-    {
-      title: "夜勤",
-      start: "2025-09-10T22:00:00",
-      end: "2025-09-11T06:00:00",
-      extendedProps: {
-        type: "nightShift",
-        clockIn: "22:00",
-        clockOut: "06:00",
-        regularEnd: "06:00",
-        breakTime: 60,
-      },
-    },
-    // 9月11日 - 夜勤（12日6時まで）
-    {
-      title: "夜勤",
-      start: "2025-09-11T22:00:00",
-      end: "2025-09-12T06:00:00",
-      extendedProps: {
-        type: "nightShift",
-        clockIn: "22:00",
-        clockOut: "06:00",
-        regularEnd: "06:00",
-        breakTime: 60,
-      },
-    },
-    // 9月12日 - 夜勤（13日6時まで）
-    {
-      title: "夜勤",
-      start: "2025-09-12T22:00:00",
-      end: "2025-09-13T06:00:00",
-      extendedProps: {
-        type: "nightShift",
-        clockIn: "22:00",
-        clockOut: "06:00",
-        regularEnd: "06:00",
-        breakTime: 60,
-      },
-    },
-    // 9月13日・14日 - 土日休み
-
-    // 9月15日 - 申請中の有給
-    {
-      title: "有給申請中",
-      start: "2025-09-15T00:00:00",
-      end: "2025-09-15T23:59:59",
-      extendedProps: {
-        type: "paidPending", // 申請中
-      },
-    },
-    // 9月16日 - 通常勤務
-    {
-      title: "勤務",
-      start: "2025-09-16T09:00:00",
-      end: "2025-09-16T18:00:00",
-      extendedProps: {
-        type: "workday",
-        clockIn: "09:00",
-        clockOut: "18:00",
-        regularEnd: "18:00",
-        breakTime: 60,
-      },
-    },
-    // 9月17日 - 残業4時間
-    {
-      title: "勤務",
-      start: "2025-09-17T09:00:00",
-      end: "2025-09-17T22:00:00",
-      extendedProps: {
-        type: "workday",
-        clockIn: "09:00",
-        clockOut: "22:00",
-        regularEnd: "18:00",
-        breakTime: 60,
-      },
-    },
-    // 9月18日 - 通常勤務
-    {
-      title: "勤務",
-      start: "2025-09-18T09:00:00",
-      end: "2025-09-18T18:00:00",
-      extendedProps: {
-        type: "workday",
-        clockIn: "09:00",
-        clockOut: "18:00",
-        regularEnd: "18:00",
-        breakTime: 60,
-      },
-    },
-    // 9月19日 - 通常勤務
-    {
-      title: "勤務",
-      start: "2025-09-19T09:00:00",
-      end: "2025-09-19T18:00:00",
-      extendedProps: {
-        type: "workday",
-        clockIn: "09:00",
-        clockOut: "18:00",
-        regularEnd: "18:00",
-        breakTime: 60,
-      },
-    },
-    // 9月20日・21日 - 土日休み
-
-    // 9月22日 - 通常勤務
-    {
-      title: "勤務",
-      start: "2025-09-22T09:00:00",
-      end: "2025-09-22T18:00:00",
-      extendedProps: {
-        type: "workday",
-        clockIn: "09:00",
-        clockOut: "18:00",
-        regularEnd: "18:00",
-        breakTime: 60,
-      },
-    },
-    // 9月23日 - 祝日（休み）
-
-    // 9月24日 - 残業1.5時間
-    {
-      title: "勤務",
-      start: "2025-09-24T09:00:00",
-      end: "2025-09-24T19:30:00",
-      extendedProps: {
-        type: "workday",
-        clockIn: "09:00",
-        clockOut: "19:30",
-        regularEnd: "18:00",
-        breakTime: 60,
-      },
-    },
-    // 9月25日 - 通常勤務
-    {
-      title: "勤務",
-      start: "2025-09-25T09:00:00",
-      end: "2025-09-25T18:00:00",
-      extendedProps: {
-        type: "workday",
-        clockIn: "09:00",
-        clockOut: "18:00",
-        regularEnd: "18:00",
-        breakTime: 60,
-      },
-    },
-    // 9月26日 - 欠勤
-    {
-      title: "欠勤",
-      start: "2025-09-26T00:00:00",
-      end: "2025-09-26T23:59:59",
-      extendedProps: {
-        type: "absenteeism",
-      },
-    },
-    // 9月27日・28日 - 土日休み
-
-    // 9月29日 - 有給休暇
-    {
-      title: "有給休暇",
-      start: "2025-09-29T00:00:00",
-      end: "2025-09-29T23:59:59",
-      extendedProps: {
-        type: "paid",
-      },
-    },
-    // 9月30日 - 夜勤（10月1日まで）
-    {
-      title: "夜勤",
-      start: "2025-09-30T22:00:00",
-      end: "2025-10-01T06:00:00",
-      extendedProps: {
-        type: "nightShift",
-        clockIn: "22:00",
-        clockOut: "06:00",
-        regularEnd: "06:00",
-        breakTime: 60,
-      },
-    },
-  ] as Event[];
-
   // 有給休暇日数を計算
-  const calcAcquiredPaidLeaveDays = (events: Event[]) => {
+  const calcAcquiredPaidLeaveDays = (events: CalendarEvent[]) => {
     const count = events.reduce(
-      (acc, ev) =>
-        ev.title === "paid" || ev.extendedProps?.type === "paid"
-          ? acc + 1
-          : acc,
+      (acc, ev) => (ev.extendedProps.workType === "paid" ? acc + 1 : acc),
       0
     );
     setAcquiredPaidLeaveDays(count);
   };
 
   // 総労働時間をset関数に
-  const calcWorkingHours = (events: Event[]) => {
+  const calcWorkingHours = (events: CalendarEvent[]) => {
     const totalWorkMinutes = events.reduce((acc, ev) => {
       const { workMinutes } = calcWorkAndOvertime(
-        ev.extendedProps.type,
+        ev.extendedProps.workType!,
         ev.extendedProps
       );
+      console.log('イベント:', ev.extendedProps.date, 'workMinutes:', workMinutes); // ←追加
       return acc + workMinutes;
     }, 0);
-    setWorkingHours(totalWorkMinutes / 60);
+    
+    setWorkingHours(totalWorkMinutes);
   };
 
   // 夜勤時間をset関数に
-  const calcNightShiftHours = (events: Event[]) => {
+  const calcNightShiftHours = (events: CalendarEvent[]) => {
     const totalNightShiftMinutes = events.reduce((acc, ev) => {
       const { nightShiftMinutes } = calcWorkAndOvertime(
-        ev.extendedProps.type,
+        ev.extendedProps.workType!,
         ev.extendedProps
       );
       return acc + nightShiftMinutes;
     }, 0);
-    setNightShiftHours(totalNightShiftMinutes / 60);
+    setNightShiftHours(totalNightShiftMinutes);
   };
 
   // 残業時間をset関数に
-  const setOvertime = (events: Event[]) => {
+  const setOvertime = (events: CalendarEvent[]) => {
     const totalOvertimeMinutes = events.reduce((acc, ev) => {
       const { overtimeMinutes } = calcWorkAndOvertime(
-        ev.extendedProps.type,
+        ev.extendedProps.workType!,
         ev.extendedProps
       );
       return acc + overtimeMinutes;
     }, 0);
-    setOvertimeHours(totalOvertimeMinutes / 60);
+    setOvertimeHours(totalOvertimeMinutes);
   };
 
   // 欠勤日数を取得
-  const caclAbsentDays = (events: Event[]) => {
+  const caclAbsentDays = (events: CalendarEvent[]) => {
     const count = events.reduce((acc, ev) => {
-      return ev.extendedProps?.type === "absenteeism" ? acc + 1 : acc;
+      return ev.extendedProps?.workType === "absenteeism" ? acc + 1 : acc;
     }, 0);
     setAbsentDays(count);
   };
 
+  // 休憩時間の計算
+  const calcBreakMinutes = (restStart: string, restEnd: string): number => {
+    if (!restStart || !restEnd) return 0;
+
+    const startMinutes = timeToMinutes(restStart);
+    const endMinutes = timeToMinutes(restEnd);
+
+    return endMinutes - startMinutes;
+  };
+
   const calcWorkAndOvertime = (
     type: string,
-    extendProps: {
-      clockIn?: string;
-      clockOut?: string;
-      regularEnd?: string;
-      breakTime?: number;
-    }
+    extendProps: AttendanceData
   ): {
     workMinutes: number;
-    regularMinutes: number;
     overtimeMinutes: number;
     nightShiftMinutes: number;
     nightShiftDisplay: string;
@@ -385,10 +104,12 @@ const Calendar = ({
     overtimeDisplay: string;
   } => {
     // ステップ1: 勤務日以外(有給、欠勤など)は0を返す
-    if (type !== "workday" && type !== "nightShift") {
+    if (
+      extendProps.workType !== "day_working" &&
+      extendProps.workType !== "night_working"
+    ) {
       return {
         workMinutes: 0,
-        regularMinutes: 0,
         overtimeMinutes: 0,
         nightShiftMinutes: 0,
         nightShiftDisplay: "",
@@ -398,14 +119,9 @@ const Calendar = ({
     }
 
     // ステップ2: 必要なデータがあるかチェック
-    if (
-      !extendProps.clockIn ||
-      !extendProps.clockOut ||
-      extendProps.breakTime === undefined
-    ) {
+    if (!extendProps.workStart || !extendProps.workEnd) {
       return {
         workMinutes: 0,
-        regularMinutes: 0,
         overtimeMinutes: 0,
         nightShiftMinutes: 0,
         nightShiftDisplay: "",
@@ -415,9 +131,12 @@ const Calendar = ({
     }
 
     // ステップ3: 基本的な計算
-    const clockInMinutes = timeToMinutes(extendProps.clockIn);
-    let clockOutMinutes = timeToMinutes(extendProps.clockOut);
-    const breakTime = extendProps.breakTime;
+    const clockInMinutes = timeToMinutes(extendProps.workStart);
+    let clockOutMinutes = timeToMinutes(extendProps.workEnd);
+    const breakTime = calcBreakMinutes(
+      extendProps.restStart || "",
+      extendProps.restEnd || ""
+    );
 
     // 日付またぎの調整
     if (clockOutMinutes < clockInMinutes) {
@@ -427,13 +146,14 @@ const Calendar = ({
     const workMinutes = clockOutMinutes - clockInMinutes - breakTime;
 
     // ステップ4: 夜勤時間を計算(常に計算する)
-    const nightShiftMinutes = calcNightShiftMinutes(extendProps);
+    const nightShiftMinutes = calcNightShiftMinutes(
+      clockInMinutes,
+      clockOutMinutes);
 
     // ステップ5: 夜勤シフトの場合
-    if (type === "nightShift") {
+    if (type === "night_working") {
       return {
         workMinutes,
-        regularMinutes: 0,
         overtimeMinutes: 0,
         nightShiftMinutes,
         nightShiftDisplay:
@@ -444,10 +164,9 @@ const Calendar = ({
     }
 
     // ステップ6: 通常勤務の場合
-    if (!extendProps.regularEnd) {
+    if (extendProps.workEndType === "on_time") {
       return {
-        workMinutes: 0,
-        regularMinutes: 0,
+        workMinutes,
         overtimeMinutes: 0,
         nightShiftMinutes: 0,
         nightShiftDisplay: "",
@@ -456,7 +175,7 @@ const Calendar = ({
       };
     }
 
-    let regularEndMinutes = timeToMinutes(extendProps.regularEnd);
+    let regularEndMinutes = timeToMinutes(SHIFT_SETTINGS.day_working.end);
 
     // 定時も日付またぎ調整
     if (regularEndMinutes < clockInMinutes) {
@@ -471,7 +190,6 @@ const Calendar = ({
 
     return {
       workMinutes,
-      regularMinutes,
       overtimeMinutes,
       nightShiftMinutes,
       nightShiftDisplay:
@@ -483,20 +201,13 @@ const Calendar = ({
   };
 
   // 夜勤の時間を計算 (22時〜翌5時 20時出勤～6時退勤の場合)
-  const calcNightShiftMinutes = (extendProps: {
-    clockIn?: string;
-    clockOut?: string;
-    breakTime?: number;
-  }): number => {
-    if (
-      !extendProps.clockIn ||
-      !extendProps.clockOut ||
-      extendProps.breakTime === undefined
-    ) {
+  const calcNightShiftMinutes = (
+    clockInMinutes: number,
+    clockOutMinutes: number,
+  ): number => {
+    if (Number.isNaN(clockInMinutes) || Number.isNaN(clockOutMinutes)) {
       return 0;
     }
-    const clockInMinutes = timeToMinutes(extendProps.clockIn); // 1200
-    let clockOutMinutes = timeToMinutes(extendProps.clockOut); // 360
 
     // 日付をまたいでいる場合
     if (clockOutMinutes < clockInMinutes) {
@@ -524,7 +235,28 @@ const Calendar = ({
     caclAbsentDays(events);
     calcWorkingHours(events);
     calcNightShiftHours(events);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events]);
+
+  const handleSelectEvent = (eventInfo: any) => {
+    const event = eventInfo.event;
+    const extendProps = event.extendedProps;
+
+    console.log(eventInfo)
+
+    setSelectedAttendance((prev) => ({
+      ...prev,
+      date: format(new Date(event.start!), "yyyy-MM-dd"),
+      workType: extendProps.workType,
+      workStart: extendProps.workStart,
+      workStartType: extendProps.workStartType,
+      workEnd: extendProps.workEnd,
+      workEndType: extendProps.workEndType,
+      restStart: extendProps.restStart,
+      restEnd: extendProps.restEnd,
+      overtimeMinutes: extendProps.overtimeMinutes,
+    }));
+  };
 
   return (
     <FullCalendar
@@ -536,13 +268,13 @@ const Calendar = ({
       eventDisplay="block"
       eventContent={(arg) => {
         const extendProps = arg.event.extendedProps;
-        const type = arg.event.extendedProps.type;
+        const type = arg.event.extendedProps.workType;
 
         // typeによって背景色を決める
         let bgColor = "bg-blue-500";
         let textColor = "text-white";
 
-        if (type === "attendance") {
+        if (type === "day_working") {
           bgColor = "bg-green-500";
         } else if (type === "overtime") {
           bgColor = "bg-orange-500";
@@ -551,43 +283,38 @@ const Calendar = ({
           textColor = "text-black";
         } else if (type === "absenteeism") {
           bgColor = "bg-red-600";
-        } else if (type === "nightShift") {
+        } else if (type === "night_working") {
           bgColor = "bg-purple-600";
+        } else if (type === "day_off") {
+          bgColor = "bg-gray-400";
+          textColor = "text-black";
         }
-
-        // 残業時間を計算
-        const { overtimeDisplay } = calcWorkAndOvertime(type, extendProps);
-
         return (
           <div className={`${bgColor} ${textColor} p-1 rounded text-xs`}>
             <div className="flex items-center space-x-1">
-              {/* {arg.timeText && arg.timeText !== "0時" && (
-                <div>{arg.timeText}</div>
-              )} */}
               <div className="">
                 {(arg.event.title === "有給休暇" ||
                   arg.event.title === "有給申請中" ||
-                  arg.event.title === "欠勤") &&
+                  arg.event.title === "欠勤" ||
+                  arg.event.title === "休日") &&
                   arg.event.title}
               </div>
             </div>
             <div>
-              {(type === "workday" || type === "nightShift") && (
+              {(type === "day_working" || type === "night_working") && (
                 <div className="flex flex-col">
                   <div className="flex items-center space-x-1">
-                    <span>{extendProps.clockIn}</span>
+                    <span>{extendProps.workStart}</span>
                     <span>-</span>
-                    <span>{extendProps.clockOut}</span>
+                    <span>{extendProps.workEnd}</span>
                   </div>
-                  {extendProps.clockOut > extendProps.regularEnd && (
-                    <span>残業時間:{overtimeDisplay}</span>
-                  )}
                 </div>
               )}
             </div>
           </div>
         );
       }}
+      eventClick={(eventInfo) => handleSelectEvent(eventInfo)}
     />
   );
 };
