@@ -9,6 +9,9 @@ import { formatTime, minutesToTime, restOneHour, timeToMinutes } from "@/utils/t
 import React, { useEffect, useState } from "react";
 import AttendanceCard from "./components/AttendanceCard";
 import { format } from "date-fns";
+import { ja } from "date-fns/locale";
+import { useAtomValue } from "jotai";
+import { eventsAtom } from "@/atoms/attendance";
 
 type WorkStatus = "day_working" | "night_working" | "rest" | "leave";
 
@@ -29,6 +32,41 @@ const Attendance = () => {
   const [currentShiftType, setCurrentShiftType] = useState<
     "day_working" | "night_working" | null
   >(null);
+
+  const [displayMonth, setDisplayMonth] = useState<Date>(new Date());
+
+  const paidLeaveCards = [
+    {
+      title: "残りの有給日数",
+      value: paidLeaveDays - acquiredPaidLeaveDays,
+      unit: "日",
+    },
+    {
+      title: "申請中の有給日数",
+      value: 0,
+      unit: "日",
+    },
+    {
+      title: "今月の有給日数",
+      value: acquiredPaidLeaveDays,
+      unit: "日",
+    },
+  ]
+
+  const workDetailCards = [
+    {
+      title: "出勤時間",
+      value: `${minutesToTime(workingHours)} (夜勤:${minutesToTime(nightShiftHours)})`,
+    },
+    {
+      title: "残業時間",
+      value: minutesToTime(overtimeHours),
+    },
+    {
+      title: "欠勤日数",
+      value: absentDays,
+    }
+  ]
 
   // 現在の日時
   const now = new Date();
@@ -51,18 +89,12 @@ const Attendance = () => {
     overtimeMinutes: 0,
   });
 
-  const [selectedAttendance, setSelectedAttendance] = useState<AttendanceData>({
-    date: "",
-    workType: null,
-    workStart: "",
-    workStartType: null,
-    calculationStart: "",
-    workEnd: "",
-    workEndType: null,
-    restStart: "",
-    restEnd: "",
-    overtimeMinutes: 0,
-  });
+  const events = useAtomValue(eventsAtom);
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const selectedAttendance = events.find(
+    event => event.extendedProps.date === selectedDate
+  )?.extendedProps;
+  console.log(selectedAttendance)
 
   // 現在のステータスによってカラーを変える
   const nowStatusColor = () => {
@@ -236,64 +268,48 @@ const Attendance = () => {
           setOvertimeHours={setOvertimeHours}
           setAbsentDays={setAbsentDays}
           setNightShiftHours={setNightShiftHours}
-          setSelectedAttendance={setSelectedAttendance}
+          setSelectedDate={setSelectedDate}
+          displayMonth={displayMonth}
+          setDisplayMonth={setDisplayMonth}
         />
         {/* ======== 表示するカレンダーのエリア ======== */}
       </div>
       {/* ======== 左側のエリア ======== */}
       {/* ======== 右側のエリア ======== */}
       <div>
-        <div>
-          <h2 className="text-2xl font-bold mb-4">勤怠管理</h2>
+        <div className="flex flex-col gap-6">
+          <h2 className="text-2xl font-bold mb-4">勤怠管理 - {format(displayMonth, "yyyy年M月",{locale: ja})}</h2>
           {/* カード群 */}
           <div>
             <span>有給日数</span>
             <div className="flex gap-4">
-              <Card className="flex-1">
+              {paidLeaveCards.map((card) => (
+              <Card key={card.title} className="flex-1">
                 <CardHeader>
-                  <CardTitle>残りの有給日数</CardTitle>
+                  <CardTitle>{card.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {paidLeaveDays - acquiredPaidLeaveDays}日
+                  {card.value} {card.unit}
                 </CardContent>
               </Card>
-              <Card className="flex-1">
-                <CardHeader>
-                  <CardTitle>申請中の有給日数</CardTitle>
-                </CardHeader>
-                <CardContent>日</CardContent>
-              </Card>
-              <Card className="flex-1">
-                <CardHeader>
-                  <CardTitle>今月の有給日数</CardTitle>
-                </CardHeader>
-                <CardContent>{acquiredPaidLeaveDays}日</CardContent>
-              </Card>
+              ))}
             </div>
           </div>
           <div>
             <span>勤務詳細</span>
             <div className="flex gap-4">
-              <Card className="flex-1">
+              {workDetailCards.map((card) => (
+
+              <Card key={card.title} className="flex-1">
                 <CardHeader>
-                  <CardTitle>出勤時間</CardTitle>
+                  <CardTitle>{card.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {minutesToTime(workingHours)} (夜勤:{minutesToTime(nightShiftHours)})
+                  {card.value}
                 </CardContent>
               </Card>
-              <Card className="flex-1">
-                <CardHeader>
-                  <CardTitle>残業時間</CardTitle>
-                </CardHeader>
-                <CardContent>{minutesToTime(overtimeHours)}</CardContent>
-              </Card>
-              <Card className="flex-1">
-                <CardHeader>
-                  <CardTitle>欠勤日数</CardTitle>
-                </CardHeader>
-                <CardContent>{absentDays}日</CardContent>
-              </Card>
+              ))}
+
             </div>
           </div>
           {/* カード群 */}
@@ -301,7 +317,7 @@ const Attendance = () => {
           {/* 勤怠データ */}
           <div className="flex gap-4">
             <AttendanceCard todayAttendance={todayAttendance} />
-            <AttendanceCard todayAttendance={selectedAttendance} />
+            <AttendanceCard selectedAttendance={selectedAttendance} />
           </div>
         </div>
       </div>

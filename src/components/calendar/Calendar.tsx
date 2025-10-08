@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import jaLocale from "@fullcalendar/core/locales/ja";
 import { minutesToTime, timeToMinutes } from "@/utils/timeUtils";
 import { AttendanceData, CalendarEvent } from "@/types/attendance";
-import { events } from "@/constants/calendarEvents";
+// import { events } from "@/constants/calendarEvents";
 import { SHIFT_SETTINGS } from "@/constants/attendance";
-import { format } from "date-fns";
+import { isSameMonth } from "date-fns";
+import { useAtomValue } from "jotai";
+import { eventsAtom } from "@/atoms/attendance";
 
 interface CalendarProps {
   setAcquiredPaidLeaveDays: React.Dispatch<React.SetStateAction<number>>;
@@ -16,7 +18,9 @@ interface CalendarProps {
   setOvertimeHours: React.Dispatch<React.SetStateAction<number>>;
   setAbsentDays: React.Dispatch<React.SetStateAction<number>>;
   setNightShiftHours: React.Dispatch<React.SetStateAction<number>>;
-  setSelectedAttendance: React.Dispatch<React.SetStateAction<AttendanceData>>;
+  setSelectedDate: React.Dispatch<React.SetStateAction<string>>;
+  displayMonth: Date;
+  setDisplayMonth: React.Dispatch<React.SetStateAction<Date>>;
 }
 
 const Calendar = ({
@@ -25,8 +29,15 @@ const Calendar = ({
   setOvertimeHours,
   setAbsentDays,
   setNightShiftHours,
-  setSelectedAttendance,
+  setSelectedDate,
+  displayMonth,
+  setDisplayMonth,
 }: CalendarProps) => {
+  const calenderRef = useRef<FullCalendar>(null);
+
+  const events = useAtomValue(eventsAtom);
+
+
   // 有給休暇日数を計算
   const calcAcquiredPaidLeaveDays = (events: CalendarEvent[]) => {
     const count = events.reduce(
@@ -43,10 +54,9 @@ const Calendar = ({
         ev.extendedProps.workType!,
         ev.extendedProps
       );
-      console.log('イベント:', ev.extendedProps.date, 'workMinutes:', workMinutes); // ←追加
       return acc + workMinutes;
     }, 0);
-    
+
     setWorkingHours(totalWorkMinutes);
   };
 
@@ -148,7 +158,8 @@ const Calendar = ({
     // ステップ4: 夜勤時間を計算(常に計算する)
     const nightShiftMinutes = calcNightShiftMinutes(
       clockInMinutes,
-      clockOutMinutes);
+      clockOutMinutes
+    );
 
     // ステップ5: 夜勤シフトの場合
     if (type === "night_working") {
@@ -203,7 +214,7 @@ const Calendar = ({
   // 夜勤の時間を計算 (22時〜翌5時 20時出勤～6時退勤の場合)
   const calcNightShiftMinutes = (
     clockInMinutes: number,
-    clockOutMinutes: number,
+    clockOutMinutes: number
   ): number => {
     if (Number.isNaN(clockInMinutes) || Number.isNaN(clockOutMinutes)) {
       return 0;
@@ -229,37 +240,36 @@ const Calendar = ({
     return nightShiftMinutes > 0 ? nightShiftMinutes : 0; // 420 > 0 なので 420 を返す
   };
 
-  useEffect(() => {
-    calcAcquiredPaidLeaveDays(events);
-    setOvertime(events);
-    caclAbsentDays(events);
-    calcWorkingHours(events);
-    calcNightShiftHours(events);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [events]);
-
-  const handleSelectEvent = (eventInfo: any) => {
-    const event = eventInfo.event;
-    const extendProps = event.extendedProps;
-
-    console.log(eventInfo)
-
-    setSelectedAttendance((prev) => ({
-      ...prev,
-      date: format(new Date(event.start!), "yyyy-MM-dd"),
-      workType: extendProps.workType,
-      workStart: extendProps.workStart,
-      workStartType: extendProps.workStartType,
-      workEnd: extendProps.workEnd,
-      workEndType: extendProps.workEndType,
-      restStart: extendProps.restStart,
-      restEnd: extendProps.restEnd,
-      overtimeMinutes: extendProps.overtimeMinutes,
-    }));
+  const handleDatesSet = (dateInfo: any) => {
+    setDisplayMonth(dateInfo.view.currentStart);
   };
+
+  const filteredEvents = events.filter((event) => {
+    const eventDate = new Date(event.extendedProps.date);
+    const result = isSameMonth(eventDate, displayMonth);
+    return result
+  });
+
+
+  useEffect(() => {
+    calcAcquiredPaidLeaveDays(filteredEvents);
+    setOvertime(filteredEvents);
+    caclAbsentDays(filteredEvents);
+    calcWorkingHours(filteredEvents);
+    calcNightShiftHours(filteredEvents);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayMonth, events]);
+
+  const handleSelectEvent = (info: any) => {
+    setSelectedDate(info.event.extendedProps.date)
+  };
+
+
 
   return (
     <FullCalendar
+      ref={calenderRef}
+      datesSet={handleDatesSet}
       locale={jaLocale}
       plugins={[dayGridPlugin]}
       initialView="dayGridMonth"
