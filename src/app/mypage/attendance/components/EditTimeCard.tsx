@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 
 import {
   Dialog,
@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { useForm } from "react-hook-form";
 import { useSetAtom } from "jotai";
 import { eventsAtom } from "@/atoms/attendance";
+import { calcWorkAndOvertime } from "@/utils/attendanceCalculations";
 
 interface EditTimeCardProps {
   data?: AttendanceData;
@@ -34,9 +35,10 @@ interface EditFormData {
 
 const EditTimeCard = ({ data }: EditTimeCardProps) => {
   const setAttendanceData = useSetAtom(eventsAtom);
+  const [editingDialogOpen, setEditingDialogOpen] = useState(false);
 
   // react-hook-form
-  const { register, handleSubmit, reset } = useForm<EditFormData>({
+  const { register, handleSubmit, reset, formState } = useForm<EditFormData>({
     defaultValues: {
       workStart: "",
       workEnd: "",
@@ -66,31 +68,63 @@ const EditTimeCard = ({ data }: EditTimeCardProps) => {
 
   // フォームの送信処理
   const onSubmit = (formData: EditFormData) => {
-    console.log("Submitted data:", formData);
+    if (!data?.date) return;
+
+    const updatedData: AttendanceData = {
+      ...data,
+      workStart: formData.workStart,
+      workEnd: formData.workEnd,
+      restStart: formData.restStart,
+      restEnd: formData.restEnd,
+    };
+
+    const { overtimeMinutes, workStartType,workEndType } = calcWorkAndOvertime(
+      updatedData.workType as string,
+      updatedData
+    );
 
     setAttendanceData((prev) =>
       prev.map((event) => {
-        if (event.extendedProps.date === data?.date) {
+        if (event.extendedProps.date === data.date) {
           return {
             ...event,
-            start: `${data.date}T${formData.workStart}:00`,
-            end: `${data.date}T${formData.workEnd}:00`,
+            start: `${data.date}T${updatedData.workStart}`,
+            end: `${data.date}T${updatedData.workEnd}`,
             extendedProps: {
-              ...event.extendedProps,
-              workStart: formData.workStart,
-              workEnd: formData.workEnd,
-              restStart: formData.restStart,
-              restEnd: formData.restEnd,
+              ...updatedData,
+              overtimeMinutes,
+              workStartType,
+              workEndType,
             },
           };
         }
         return event;
       })
     );
+    console.log("更新された勤怠データ:", updatedData);
+    setEditingDialogOpen(false);
+  };
+
+  // キャンセル時の処理
+  const handleCancel = () => {
+    if (formState.isDirty) {
+      // 変更されている場合、確認ダイアログを表示
+      const confirmed = window.confirm(
+        "変更内容が保存されていません。キャンセルしてもよろしいですか?"
+      );
+
+      if (confirmed) {
+        reset(); // フォームをリセット
+        setEditingDialogOpen(false);
+      }
+    } else {
+      // 変更されていない場合、そのまま閉じる
+      setEditingDialogOpen(false);
+    }
   };
 
   return (
-    <Dialog>
+    <Dialog open={editingDialogOpen} onOpenChange={setEditingDialogOpen}>
       <DialogTrigger
         className={`bg-amber-300 rounded-md w-[100px] py-1 ml-auto disabled:bg-gray-300 disabled:opacity-70`}
         disabled={!data || !data.date || data.date === "未設定"}
@@ -121,9 +155,13 @@ const EditTimeCard = ({ data }: EditTimeCardProps) => {
             >
               登録する
             </Button>
-            <DialogClose asChild>
-              <Button variant={"outline"}>キャンセル</Button>
-            </DialogClose>
+            <Button
+              type="button"
+              onClick={() => handleCancel()}
+              variant={"outline"}
+            >
+              キャンセル
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

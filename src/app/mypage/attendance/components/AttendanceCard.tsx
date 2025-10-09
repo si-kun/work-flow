@@ -4,6 +4,7 @@ import { minutesToTime } from "@/utils/timeUtils";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import EditTimeCard from "./EditTimeCard";
+import { useState } from "react";
 
 interface AttendanceCardProps {
   todayAttendance?: AttendanceData;
@@ -20,8 +21,9 @@ export const attendanceFields: { label: string; key: keyof AttendanceData }[] =
     { label: "残業", key: "overtimeMinutes" },
   ];
 
-const AttendanceSection = ({ data }: { data?: AttendanceData }) => (
-  <Card className="w-[250px] flex flex-col gap-2 px-4">
+const AttendanceSection = ({ data }: { data?: AttendanceData }) => {
+
+  return (<Card className="w-[250px] flex flex-col gap-2 px-4">
     <CardContent className="flex flex-col gap-2 px-0">
       {attendanceFields.map(({ label, key }) => {
         const value = data
@@ -62,8 +64,8 @@ const AttendanceSection = ({ data }: { data?: AttendanceData }) => (
       })}
     </CardContent>
     <EditTimeCard data={data} />
-  </Card>
-);
+  </Card>)
+};
 
 const AttendanceCard = ({
   todayAttendance,
