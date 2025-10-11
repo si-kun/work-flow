@@ -4,7 +4,6 @@ import { minutesToTime } from "@/utils/timeUtils";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import EditTimeCard from "./EditTimeCard";
-import { useState } from "react";
 
 interface AttendanceCardProps {
   todayAttendance?: AttendanceData;

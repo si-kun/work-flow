@@ -1,7 +1,6 @@
 import { AttendanceData, ClockInType, ClockOutType } from "@/types/attendance";
 import { minutesToTime, timeToMinutes } from "./timeUtils";
 import { SHIFT_SETTINGS } from "@/constants/attendance";
-import { start } from "repl";
 
 // 夜勤の時間を計算 (22時〜翌5時 20時出勤～6時退勤の場合)
 const calcNightShiftMinutes = (

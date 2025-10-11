@@ -91,10 +91,20 @@ const Attendance = () => {
 
   const events = useAtomValue(eventsAtom);
   const [selectedDate, setSelectedDate] = useState<string>("");
-  const selectedAttendance = events.find(
+  const selectedAttendance:AttendanceData = events.find(
     event => event.extendedProps.date === selectedDate
-  )?.extendedProps;
-  console.log(selectedAttendance)
+  )?.extendedProps ||{
+    date: selectedDate,
+    workType: null,
+    workStart: "",
+    workStartType: null,
+    calculationStart: "",
+    workEnd: "",
+    workEndType: null,
+    restStart: "",
+    restEnd: "",
+    overtimeMinutes: 0,
+  };
 
   // 現在のステータスによってカラーを変える
   const nowStatusColor = () => {

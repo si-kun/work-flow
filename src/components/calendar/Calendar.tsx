@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
+import interactionPlugin from "@fullcalendar/interaction";
 import jaLocale from "@fullcalendar/core/locales/ja";
 import { CalendarEvent } from "@/types/attendance";
 // import { events } from "@/constants/calendarEvents";
@@ -111,6 +112,13 @@ const Calendar = ({
 
   const handleSelectEvent = (info: any) => {
     setSelectedDate(info.event.extendedProps.date);
+    console.log(info.event.extendedProps.date);
+  };
+
+  const handleDateClick = (info: any) => {
+    // クリックされた日付を取得
+    setSelectedDate(info.dateStr);
+    console.log(info.dateStr);
   };
 
   return (
@@ -118,9 +126,10 @@ const Calendar = ({
       ref={calenderRef}
       datesSet={handleDatesSet}
       locale={jaLocale}
-      plugins={[dayGridPlugin]}
+      plugins={[dayGridPlugin,interactionPlugin]}
       initialView="dayGridMonth"
       height="auto"
+      dateClick={handleDateClick}
       events={events}
       eventDisplay="block"
       eventContent={(arg) => {
