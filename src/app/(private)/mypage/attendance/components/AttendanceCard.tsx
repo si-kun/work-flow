@@ -1,16 +1,16 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { AttendanceData } from "@/types/attendance";
+import { DailyAttendanceData } from "@/types/attendance";
 import { minutesToTime } from "@/utils/timeUtils";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import EditTimeCard from "./EditTimeCard";
 
 interface AttendanceCardProps {
-  todayAttendance?: AttendanceData;
-  selectedAttendance?: AttendanceData;
+  todayAttendance?: DailyAttendanceData;
+  selectedAttendance?: DailyAttendanceData;
 }
 
-export const attendanceFields: { label: string; key: keyof AttendanceData }[] =
+export const attendanceFields: { label: string; key: keyof DailyAttendanceData }[] =
   [
     { label: "日付", key: "date" },
     { label: "出勤", key: "workStart" },
@@ -20,7 +20,7 @@ export const attendanceFields: { label: string; key: keyof AttendanceData }[] =
     { label: "残業", key: "overtimeMinutes" },
   ];
 
-const AttendanceSection = ({ data }: { data?: AttendanceData }) => {
+const AttendanceSection = ({ data }: { data?: DailyAttendanceData }) => {
 
   return (<Card className="w-[250px] flex flex-col gap-2 px-4">
     <CardContent className="flex flex-col gap-2 px-0">

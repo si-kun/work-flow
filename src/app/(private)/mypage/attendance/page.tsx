@@ -3,7 +3,7 @@
 import Calendar from "@/components/calendar/Calendar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AttendanceData } from "@/types/attendance";
+import { DailyAttendanceData } from "@/types/attendance";
 import { determineClockInType } from "@/utils/attendanceUtils";
 import { formatTime, minutesToTime, restOneHour, timeToMinutes } from "@/utils/timeUtils";
 import React, { useEffect, useState } from "react";
@@ -76,7 +76,7 @@ const Attendance = () => {
   const [previousWorkStatus, setPreviousWorkStatus] =
     useState<WorkStatus>("leave");
 
-  const [todayAttendance, setTodayAttendance] = useState<AttendanceData>({
+  const [todayAttendance, setTodayAttendance] = useState<DailyAttendanceData>({
     date: format(now, "yyyy-MM-dd"),
     workType: null,
     workStart: "",
@@ -91,7 +91,7 @@ const Attendance = () => {
 
   const events = useAtomValue(eventsAtom);
   const [selectedDate, setSelectedDate] = useState<string>("");
-  const selectedAttendance:AttendanceData = events.find(
+  const selectedAttendance:DailyAttendanceData = events.find(
     event => event.extendedProps.date === selectedDate
   )?.extendedProps ||{
     date: selectedDate,

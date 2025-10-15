@@ -1,7 +1,7 @@
 import { SHIFT_SETTINGS } from "@/constants/attendance";
 import { timeToMinutes } from "./timeUtils";
+import { ClockInType } from "@/types/attendance";
 
-export type ClockInType = "early_arrival" | "on_time" | "late";
 
 export const determineClockInType = (
   clickTime: string,

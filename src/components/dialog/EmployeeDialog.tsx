@@ -50,10 +50,10 @@ import { ChevronDownIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { addEmployee } from "@/actions/auth/addEmployee";
 import { useSetAtom } from "jotai";
-import { allUsers } from "@/atom/userAtom";
 import { User } from "@prisma/client";
 import { updateEmployee } from "@/actions/auth/updateEmployee";
 import { deleteEmployee } from "@/actions/auth/deleteEmployee";
+import { allUsers } from "@/atoms/user";
 
 interface EmployeeDialogProps {
   openEmployeeDialog: boolean;

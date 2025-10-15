@@ -1,14 +1,8 @@
 export type CurrentWorkStatus = "day_working" | "night_working" | "rest" | "leave";
 
-// export type DailyWorkType =
-// | "day_working"     // 通常勤務
-// | "night_working"   // 夜勤
-// | "paid"            // 有給休暇
-// | "paid_pending"    // 申請中の有給
-// | "absenteeism"     // 欠勤
-// | "day_off";        // 休日
-
 export type DailyWorkType = typeof DailyWork[number]["value"];
+export type ClockInType = typeof ClockIn[number]["value"];
+export type ClockOutType = typeof ClockOut[number]["value"];
 
 export const DailyWork = [
     { label: "通常勤務", value: "day_working" },
@@ -19,11 +13,19 @@ export const DailyWork = [
     { label: "休日", value: "day_off" },
 ] as const;
 
+export const ClockIn = [
+    { label: "早退", value: "early_arrival" },
+    { label: "時間通り", value: "on_time" },
+    { label: "遅刻", value: "late" },
+] as const;
 
-export type ClockInType= "early_arrival" | "on_time" | "late";
-export type ClockOutType= "early_leave" | "on_time" | "over_time";
+export const ClockOut = [
+    { label: "早退", value: "early_leave" },
+    { label: "時間通り", value: "on_time" },
+    { label: "残業", value: "over_time" },
+] as const;
 
-export interface AttendanceData  {
+export interface DailyAttendanceData  {
     date: string;
     workType: DailyWorkType | null;
     workStart: string;
@@ -40,5 +42,5 @@ export interface CalendarEvent {
     title: string;
     start: string;
     end: string;
-    extendedProps: AttendanceData ;
+    extendedProps: DailyAttendanceData ;
 }

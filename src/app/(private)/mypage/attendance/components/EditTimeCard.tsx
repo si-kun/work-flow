@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { attendanceFields } from "./AttendanceCard";
-import { AttendanceData, DailyWork, DailyWorkType } from "@/types/attendance";
+import { DailyAttendanceData, DailyWork, DailyWorkType } from "@/types/attendance";
 import { addDays, format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Label } from "@/components/ui/label";
@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/select";
 
 interface EditTimeCardProps {
-  data?: AttendanceData;
+  data?: DailyAttendanceData;
 }
 
 interface EditFormData {
@@ -85,7 +85,7 @@ const EditTimeCard = ({ data }: EditTimeCardProps) => {
   const onSubmit = (formData: EditFormData) => {
     if (!data?.date) return;
 
-    const updatedData: AttendanceData = {
+    const updatedData: DailyAttendanceData = {
       ...data,
       workType: formData.workType,
       workStart: formData.workStart,

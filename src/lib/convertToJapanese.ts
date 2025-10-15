@@ -1,3 +1,4 @@
+import { ClockIn, ClockInType, ClockOut, ClockOutType, DailyWork, DailyWorkType } from "@/types/attendance";
 import { User } from "@prisma/client";
 
 // 部署を英語から日本語に変換する関数
@@ -66,3 +67,27 @@ export const convertStatusToJapanese = (englishStatus: string): string => {
     })
     return counts;
   };
+
+  // workTypeを日本語に変換
+  export const convertWorkTypeToJapanese = (workType: DailyWorkType | null): string => {
+    if(!workType) return "-";
+
+    const found = DailyWork.find((work) => work.value === workType);
+    return found ? found.label : workType;
+  }
+
+  // workStartTypeを日本語に変換
+  export const convertWorkStartTypeToJapanese = (workStartType: ClockInType | null): string => {
+    if(!workStartType) return "-";
+
+    const found = ClockIn.find((work) => work.value === workStartType);
+    return found ? found.label === "時間通り" ? "" : found.label : workStartType;
+  }
+
+  // workEndTypeを日本語に変換
+  export const convertWorkEndTypeToJapanese = (workEndType: ClockOutType | null): string => {
+    if(!workEndType) return "-";
+
+    const found = ClockOut.find((work) => work.value === workEndType);
+    return found ? found.label === "時間通り" ? "" : found.label : workEndType;
+  }

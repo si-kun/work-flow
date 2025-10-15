@@ -1,7 +1,7 @@
 "use client"
 
 import { getAllUsers } from "@/actions/auth/getAllUsers"
-import { allUsers } from "@/atom/userAtom"
+import { allUsers } from "@/atoms/user"
 import { useSetAtom } from "jotai"
 import { useEffect } from "react"
 
