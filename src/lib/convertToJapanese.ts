@@ -81,7 +81,7 @@ export const convertStatusToJapanese = (englishStatus: string): string => {
     if(!workStartType) return "-";
 
     const found = ClockIn.find((work) => work.value === workStartType);
-    return found ? found.label === "時間通り" ? "" : found.label : workStartType;
+    return found ? found.label === "時間通り" ? "-" : found.label : workStartType;
   }
 
   // workEndTypeを日本語に変換
@@ -89,5 +89,5 @@ export const convertStatusToJapanese = (englishStatus: string): string => {
     if(!workEndType) return "-";
 
     const found = ClockOut.find((work) => work.value === workEndType);
-    return found ? found.label === "時間通り" ? "" : found.label : workEndType;
+    return found ? found.label === "時間通り" ? "-" : found.label : workEndType;
   }

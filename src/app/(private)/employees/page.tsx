@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Divide, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { User } from "@prisma/client";
 import {
   convertDepartmentToJapanese,
@@ -30,11 +30,12 @@ import {
 } from "@/lib/convertToJapanese";
 import { allUsers } from "@/atoms/user";
 import {
-  ATTENDANCE_DUMMY_DATA,
   ATTENDANCE_TABLE_HEADER,
+  MONTHLY_SUMMARY_BY_MONTH,
+  MonthlySummaryData,
 } from "@/constants/attendance";
 import AttendanceDetailDialog from "@/components/dialog/AttendanceDetailDialog";
-import { Span } from "next/dist/trace";
+import { boolean } from "zod";
 
 export default function Home() {
   useFetchAllUsers(); // 初回レンダリング時に全ユーザーを取得
@@ -42,6 +43,31 @@ export default function Home() {
   const [editEmployeeId, setEditEmployeeId] = useState<string | null>(null);
   const [searchEmployee, setSearchEmployee] = useState<string>("");
   const [targetEmployee, setTargetEmployee] = useState<User[]>([]);
+
+  // 期間フィルター
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const year = selectedDate.getFullYear();
+  const month = selectedDate.getMonth() + 1;
+
+  const handleYearChange = (year: string) => {
+    setSelectedDate((prev) => {
+      const newDate = new Date(prev);
+      newDate.setFullYear(parseInt(year));
+      return newDate;
+    })
+  }
+  const handleMonthChange = (month: string) => {
+    setSelectedDate((prev) => {
+      const newDate = new Date(prev);
+      newDate.setMonth(parseInt(month) - 1);
+      return newDate;
+    })
+  }
+
+  const yearMonthKey = `${year}-${month.toString().padStart(2, "0")}`
+  const allUserData = Object.keys(MONTHLY_SUMMARY_BY_MONTH)
+  .map(userId => MONTHLY_SUMMARY_BY_MONTH[userId]?.[yearMonthKey])
+  .filter((data): data is MonthlySummaryData => data !== undefined);
 
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
 
@@ -197,12 +223,45 @@ export default function Home() {
           value="attendance"
           className="flex-1 h-full  overflow-y-auto"
         >
+          {/* 期間選択 */}
+          <div className="flex items-center gap-2 mb-4">
+            <Select onValueChange={handleYearChange} value={year.toString()}>
+              <SelectTrigger>
+                <SelectValue placeholder={year} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>年</SelectLabel>
+                  {[...Array(6)].map((_, i) => (
+                    <SelectItem key={i} value={(2020 + i).toString()}>
+                      {2020 + i}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <Select onValueChange={handleMonthChange} value={month.toString()}>
+              <SelectTrigger>
+                <SelectValue placeholder={month} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>月</SelectLabel>
+                  {[...Array(12)].map((_, i) => (
+                    <SelectItem key={i + 1} value={(i + 1).toString()}>
+                      {i + 1}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="bg-slate-50 border border-slate-300 flex sticky top-0 z-10">
             {/* ヘッダー部分 */}
             {ATTENDANCE_TABLE_HEADER.map((header) => (
               <span
                 key={header.id}
-                className="w-[300px] px-3 py-2.5 text-slate-900 border-r border-slate-300"
+                className="w-[300px] px-3 py-2.5 text-slate-900 border-r border-slate-300 last:border-0 font-medium"
               >
                 {header.label}
               </span>
@@ -210,7 +269,7 @@ export default function Home() {
           </div>
           {/* テーブル部分 */}
           <div className="flex flex-col border border-slate-300 border-t-0">
-            {ATTENDANCE_DUMMY_DATA.map((data) => {
+            {allUserData.map((data) => {
               const cellData = [
                 data.name,
                 data.department,

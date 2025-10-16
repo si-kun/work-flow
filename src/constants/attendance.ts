@@ -6,7 +6,7 @@ interface ShiftSettings {
   earlyClockInWindow: number;
 }
 
-interface MonthlySummaryData {
+export interface MonthlySummaryData {
   userId: string;
   name: string;
   department: string;
@@ -44,39 +44,71 @@ export const ATTENDANCE_TABLE_HEADER = [
 export const ATTENDANCE_DIALOG_HEADER = [
   "日付",
   "勤務形態",
+  "出勤時刻",
   "出勤状況",
+  "退勤時刻",
   "退勤状況",
   "休憩開始",
   "休憩終了",
   "残業時間",
 ]
 
-export const ATTENDANCE_DUMMY_DATA: MonthlySummaryData[] = [
-  {
-    userId: "1", // ReoNaのID(後で実際のIDに合わせます)
-    name: "ReoNa",
-    department: "営業部",
-    position: "デザイナー",
-    totalWorkHours: 160,
-    nightWorkHours: 0,
-    paidLeaveUsed: 5,
-    paidLeaveRemaining: 15,
-    absentDays: 0,
-  },
-  {
-    userId: "2",
-    name: "Aimer",
-    department: "技術部",
-    position: "エンジニア",
-    totalWorkHours: 185,
-    nightWorkHours: 20,
-    paidLeaveUsed: 3,
-    paidLeaveRemaining: 17,
-    absentDays: 1,
-  },
-  // 他の従業員も追加していきます
-];
 
+
+// 月ごとの集計データ
+
+type MonthlySummaryByUser = Record<string, MonthlySummaryData>;
+type MonthlySummaryByMonth = Record<string, MonthlySummaryByUser>;
+export const MONTHLY_SUMMARY_BY_MONTH: MonthlySummaryByMonth = {
+  "1": {  // ReoNa
+    "2025-09": {
+      userId: "1",
+      name: "ReoNa",
+      department: "営業部",
+      position: "デザイナー",
+      totalWorkHours: 155,
+      nightWorkHours: 0,
+      paidLeaveUsed: 1,
+      paidLeaveRemaining: 19,
+      absentDays: 0,
+    },
+    "2025-10": {
+      userId: "1",
+      name: "ReoNa",
+      department: "営業部",
+      position: "デザイナー",
+      totalWorkHours: 160,
+      nightWorkHours: 0,
+      paidLeaveUsed: 5,
+      paidLeaveRemaining: 15,
+      absentDays: 0,
+    },
+  },
+  "2": {  // Aimer
+    "2025-09": {
+      userId: "2",
+      name: "Aimer",
+      department: "技術部",
+      position: "エンジニア",
+      totalWorkHours: 190,
+      nightWorkHours: 25,
+      paidLeaveUsed: 1,
+      paidLeaveRemaining: 19,
+      absentDays: 1,
+    },
+    "2025-10": {
+      userId: "2",
+      name: "Aimer",
+      department: "技術部",
+      position: "エンジニア",
+      totalWorkHours: 185,
+      nightWorkHours: 20,
+      paidLeaveUsed: 3,
+      paidLeaveRemaining: 17,
+      absentDays: 1,
+    },
+  },
+};
 // 10月のダミーデータ
 export const OCTOBER_ATTENDANCE_DUMMY: {
   [userId: string]: DailyAttendanceData[];

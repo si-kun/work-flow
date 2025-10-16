@@ -33,23 +33,23 @@ const AttendanceDetailDialog = ({
   userId,
   userName,
 }: AttendanceDetailDialogProps) => {
-
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   const handlePrevMonth = () => {
     setSelectedDate((prev) => subMonths(prev, 1));
-  }
+  };
 
   const handleNextMonth = () => {
     setSelectedDate((prev) => addMonths(prev, 1));
-  }
+  };
 
   const year = selectedDate.getFullYear();
-  const month = selectedDate.getMonth() + 1
+  const month = selectedDate.getMonth() + 1;
 
-  const yearMonthKey = `${year}-${month.toString().padStart(2, '0')}`;
+  const yearMonthKey = `${year}-${month.toString().padStart(2, "0")}`;
 
-  const attendanceData = ATTENDANCE_DUMMY_BY_MONTH[userId]?.[yearMonthKey] || []
+  const attendanceData =
+    ATTENDANCE_DUMMY_BY_MONTH[userId]?.[yearMonthKey] || [];
 
   return (
     <Dialog>
@@ -68,13 +68,23 @@ const AttendanceDetailDialog = ({
       <DialogContent className="min-w-[70%] min-h-[70%] flex flex-col items-center overflow-hidden">
         <DialogHeader className="relative w-full flex items-center justify-center">
           <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-2">
-            <Button type="button" variant={"secondary"} onClick={handlePrevMonth}>
+            <Button
+              type="button"
+              variant={"secondary"}
+              onClick={handlePrevMonth}
+            >
               <ArrowLeft />
             </Button>
             <div>
-              <span>{year}年{month}月</span>
+              <span>
+                {year}年{month}月
+              </span>
             </div>
-            <Button type="button" variant={"secondary"} onClick={handleNextMonth}>
+            <Button
+              type="button"
+              variant={"secondary"}
+              onClick={handleNextMonth}
+            >
               <ArrowRight />
             </Button>
           </div>
@@ -87,7 +97,7 @@ const AttendanceDetailDialog = ({
             {ATTENDANCE_DIALOG_HEADER.map((header) => (
               <span
                 key={header}
-                className="w-[300px] px-3 py-2.5 text-slate-900 border-r border-slate-300 last:border-r-0"
+                className="w-[300px] px-3 py-2.5 text-slate-900 border-r border-slate-300 last:border-r-0 font-medium"
               >
                 {header}
               </span>
@@ -98,12 +108,12 @@ const AttendanceDetailDialog = ({
               const cellData = [
                 attendance.date,
                 convertWorkTypeToJapanese(attendance.workType),
-                attendance.workStart +
-                  convertWorkStartTypeToJapanese(attendance.workStartType),
-                attendance.workEnd +
-                  convertWorkEndTypeToJapanese(attendance.workEndType),
-                attendance.restStart,
-                attendance.restEnd,
+                attendance.workStart || "-",
+                convertWorkStartTypeToJapanese(attendance.workStartType),
+                attendance.workEnd || "-",
+                convertWorkEndTypeToJapanese(attendance.workEndType),
+                attendance.restStart || "-",
+                attendance.restEnd || "-",
                 attendance.overtimeMinutes + "分",
               ];
 
