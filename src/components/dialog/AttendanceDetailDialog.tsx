@@ -10,17 +10,18 @@ import {
 } from "@/components/ui/dialog";
 import {
   ATTENDANCE_DIALOG_HEADER,
-  ATTENDANCE_DUMMY_BY_MONTH,
 } from "@/constants/attendance";
 import {
   convertWorkEndTypeToJapanese,
   convertWorkStartTypeToJapanese,
   convertWorkTypeToJapanese,
 } from "@/lib/convertToJapanese";
-import { addMonths, subMonths } from "date-fns";
+import { addMonths, format, subMonths } from "date-fns";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
+import { getDailyAttendance } from "@/actions/attendance/summary/getDailyAttendance";
+import { DailyAttendanceData } from "@/types/attendance";
 
 interface AttendanceDetailDialogProps {
   cellData: string[];
@@ -46,10 +47,22 @@ const AttendanceDetailDialog = ({
   const year = selectedDate.getFullYear();
   const month = selectedDate.getMonth() + 1;
 
-  const yearMonthKey = `${year}-${month.toString().padStart(2, "0")}`;
+  const [attendanceDayData, setAttendanceDayData] = useState<DailyAttendanceData[]>([]);
 
-  const attendanceData =
-    ATTENDANCE_DUMMY_BY_MONTH[userId]?.[yearMonthKey] || [];
+  // サーバーアクションで指定月の勤怠データを取得
+  useEffect(() => {
+    try {
+      const fetchAttendanceDayData = async () => {
+        const response = await getDailyAttendance(userId, year, month);
+        if (response.success) {
+          setAttendanceDayData(response.data);
+        }
+      };
+      fetchAttendanceDayData();
+    } catch (error) {
+      console.log("Error fetching attendance data:", error);
+    }
+  }, [year, month, userId]);
 
   return (
     <Dialog>
@@ -104,9 +117,9 @@ const AttendanceDetailDialog = ({
             ))}
           </div>
           <div className="flex flex-col flex-1 border border-slate-300 border-t-0">
-            {attendanceData.map((attendance) => {
+            {attendanceDayData.map((attendance) => {
               const cellData = [
-                attendance.date,
+                format(attendance.date, "yyyy-MM-dd"),
                 convertWorkTypeToJapanese(attendance.workType),
                 attendance.workStart || "-",
                 convertWorkStartTypeToJapanese(attendance.workStartType),
@@ -119,7 +132,7 @@ const AttendanceDetailDialog = ({
 
               return (
                 <div
-                  key={attendance.date}
+                  key={format(attendance.date, "yyyy-MM-dd")}
                   className="flex border-b border-slate-300 hover:bg-slate-100 last:border-b-0"
                 >
                   {cellData.map((data, index) => (

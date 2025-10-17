@@ -18,17 +18,63 @@ model User {
   id         String   @id // supabaseのuser id を使用
   email      String   @unique
   name       String
-  department String
-  position    String
-  joinDate   DateTime
-  isActive   String   @default("Employment")
-  role       Role     @default(EMPLOYEE)
+  department String // 部署
+  position   String // 役職
+  joinDate   DateTime // 入社日
+  isActive   String   @default("Employment") // 雇用形態 (Employment, Leave, Retirement)
+  role       Role     @default(EMPLOYEE) // 権限 (ADMIN, MANAGER, EMPLOYEE)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  paidLeaveTotal Int @default(0)
+  paidLeaveUsed  Int @default(0)
+
+  attendances Attendance[]
 }
 
 enum Role {
   ADMIN
   MANAGER
   EMPLOYEE
+}
+
+model Attendance {
+  userId String
+  date DateTime
+  workType DailyWorkType // 勤務形態
+  workStart String? // 出勤時間
+  workStartType ClockInType? // 出勤打刻タイプ
+  workEnd String? // 退勤時間
+  workEndType ClockOutType? // 退勤打刻タイプ
+  restStart String? // 休憩開始時間
+  restEnd String? // 休憩終了時間
+  overtimeMinutes Int @default(0) // 残業時間
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@id([userId, date])
+
+}
+
+enum DailyWorkType {
+  day_working
+  night_working
+  paid
+  paid_pending
+  absenteeism
+  day_off
+}
+
+enum ClockInType {
+  early_arrival
+  on_time
+  late
+}
+
+enum ClockOutType {
+  early_leave
+  on_time
+  over_time
 }

@@ -26,15 +26,15 @@ export const ClockOut = [
 ] as const;
 
 export interface DailyAttendanceData  {
-    date: string;
+    date: Date;
     workType: DailyWorkType | null;
-    workStart: string;
+    workStart: string | null;
     workStartType: ClockInType | null;
-    calculationStart: string;
-    workEnd: string;
+    // calculationStart: string;
+    workEnd: string | null;
     workEndType: ClockOutType | null;
-    restStart: string;
-    restEnd: string;
+    restStart: string | null;
+    restEnd: string | null;
     overtimeMinutes: number;
 }
 

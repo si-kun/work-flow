@@ -35,7 +35,8 @@ import {
   MonthlySummaryData,
 } from "@/constants/attendance";
 import AttendanceDetailDialog from "@/components/dialog/AttendanceDetailDialog";
-import { boolean } from "zod";
+import { getMonthlySummary } from "@/actions/attendance/summary/getMonthlySummary";
+import { minutesToTime } from "@/utils/timeUtils";
 
 export default function Home() {
   useFetchAllUsers(); // 初回レンダリング時に全ユーザーを取得
@@ -64,10 +65,23 @@ export default function Home() {
     })
   }
 
-  const yearMonthKey = `${year}-${month.toString().padStart(2, "0")}`
-  const allUserData = Object.keys(MONTHLY_SUMMARY_BY_MONTH)
-  .map(userId => MONTHLY_SUMMARY_BY_MONTH[userId]?.[yearMonthKey])
-  .filter((data): data is MonthlySummaryData => data !== undefined);
+  const [fetchedAttendanceMonthData, setFetchedAttendanceMonthData] = useState<MonthlySummaryData[]>([]);
+
+  // ユーザーの情報をサーバーアクションで取得
+  useEffect(() => {
+    const getAllAttendanceData = async () => {
+      try {
+        const response = await getMonthlySummary(year, month);
+
+        if(response.success) {
+          setFetchedAttendanceMonthData(response.data)
+        }
+      } catch(error) {
+        console.error("Error fetching attendance data:", error);
+      }
+    }
+    getAllAttendanceData();
+  },[year, month])
 
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
 
@@ -269,13 +283,13 @@ export default function Home() {
           </div>
           {/* テーブル部分 */}
           <div className="flex flex-col border border-slate-300 border-t-0">
-            {allUserData.map((data) => {
+            {fetchedAttendanceMonthData.map((data) => {
               const cellData = [
                 data.name,
                 data.department,
                 data.position,
-                data.totalWorkHours + "時間",
-                data.nightWorkHours + "時間",
+                minutesToTime(data.totalWorkHours),
+                minutesToTime(data.nightWorkHours),
                 `${data.paidLeaveUsed}日 / ${data.paidLeaveRemaining}日`,
                 data.absentDays + "日",
               ];
