@@ -14,8 +14,8 @@ async function main() {
       id: "dummy-user-1",
       email: "reona123@gmail.com",
       name: "ReoNa",
-      department: "営業部",
-      position: "デザイナー",
+      department: "Sales",
+      position: "Designer",
       joinDate: new Date("2023-10-20"),
       isActive: "Employment",
       role: "EMPLOYEE",
@@ -187,8 +187,8 @@ async function main() {
       id: "dummy-user-2",
       email: "aimer123@gmail.com",
       name: "Aimer",
-      department: "技術部",
-      position: "エンジニア",
+      department: "Engineering",
+      position: "Engineer",
       joinDate: new Date("2025-09-22"),
       isActive: "Employment",
       role: "EMPLOYEE",
@@ -335,6 +335,289 @@ async function main() {
 
   console.log("Aimerの10月データを作成しました");
   console.log("シード完了!");
+
+  // ユーザー3: milet
+  const user3 = await prisma.user.create({
+    data: {
+      id: "dummy-user-3",
+      email: "milet123@gmail.com",
+      name: "milet",
+      department: "Marketing",
+      position: "Manager",
+      joinDate: new Date("2024-04-15"),
+      isActive: "Employment",
+      role: "EMPLOYEE",
+      paidLeaveTotal: 20,
+      paidLeaveUsed: 8,
+    },
+  });
+
+  // miletの10月の勤怠データ
+  const miletOctoberData = [
+    {
+      day: 1,
+      workType: "day_working",
+      workStart: "09:00",
+      workStartType: "on_time",
+      workEnd: "21:00",
+      workEndType: "over_time",
+      restStart: "12:00",
+      restEnd: "13:00",
+      overtimeMinutes: 180,
+    },
+    {
+      day: 2,
+      workType: "day_working",
+      workStart: "09:00",
+      workStartType: "on_time",
+      workEnd: "22:30",
+      workEndType: "over_time",
+      restStart: "12:00",
+      restEnd: "13:00",
+      overtimeMinutes: 270,
+    },
+    {
+      day: 3,
+      workType: "day_working",
+      workStart: "09:00",
+      workStartType: "on_time",
+      workEnd: "20:00",
+      workEndType: "over_time",
+      restStart: "12:00",
+      restEnd: "13:00",
+      overtimeMinutes: 120,
+    },
+    {
+      day: 4,
+      workType: "day_off",
+      workStart: null,
+      workStartType: null,
+      workEnd: null,
+      workEndType: null,
+      restStart: null,
+      restEnd: null,
+      overtimeMinutes: 0,
+    },
+    {
+      day: 5,
+      workType: "day_off",
+      workStart: null,
+      workStartType: null,
+      workEnd: null,
+      workEndType: null,
+      restStart: null,
+      restEnd: null,
+      overtimeMinutes: 0,
+    },
+  ];
+
+  for (const dayData of miletOctoberData) {
+    await prisma.attendance.create({
+      data: {
+        userId: user3.id,
+        date: new Date(`2025-10-${dayData.day.toString().padStart(2, "0")}`),
+        workType: dayData.workType as DailyWorkType,
+        workStart: dayData.workStart,
+        workStartType: dayData.workStartType as ClockInType | null,
+        workEnd: dayData.workEnd,
+        workEndType: dayData.workEndType as ClockOutType | null,
+        restStart: dayData.restStart,
+        restEnd: dayData.restEnd,
+        overtimeMinutes: dayData.overtimeMinutes,
+      },
+    });
+  }
+
+  console.log("miletの10月データを作成しました");
+
+  // ユーザー4: らでん
+  const user4 = await prisma.user.create({
+    data: {
+      id: "dummy-user-4",
+      email: "raden123@gmail.com",
+      name: "らでん",
+      department: "Finance",
+      position: "Analyst",
+      joinDate: new Date("2024-07-01"),
+      isActive: "Employment",
+      role: "EMPLOYEE",
+      paidLeaveTotal: 20,
+      paidLeaveUsed: 2,
+    },
+  });
+
+  // らでんの10月の勤怠データ
+  const radenOctoberData = [
+    {
+      day: 1,
+      workType: "day_working",
+      workStart: "09:00",
+      workStartType: "on_time",
+      workEnd: "18:30",
+      workEndType: "over_time",
+      restStart: "12:00",
+      restEnd: "13:00",
+      overtimeMinutes: 30,
+    },
+    {
+      day: 2,
+      workType: "day_working",
+      workStart: "09:00",
+      workStartType: "on_time",
+      workEnd: "18:00",
+      workEndType: "on_time",
+      restStart: "12:00",
+      restEnd: "13:00",
+      overtimeMinutes: 0,
+    },
+    {
+      day: 3,
+      workType: "day_working",
+      workStart: "09:00",
+      workStartType: "on_time",
+      workEnd: "19:00",
+      workEndType: "over_time",
+      restStart: "12:00",
+      restEnd: "13:00",
+      overtimeMinutes: 60,
+    },
+    {
+      day: 4,
+      workType: "day_off",
+      workStart: null,
+      workStartType: null,
+      workEnd: null,
+      workEndType: null,
+      restStart: null,
+      restEnd: null,
+      overtimeMinutes: 0,
+    },
+    {
+      day: 5,
+      workType: "day_off",
+      workStart: null,
+      workStartType: null,
+      workEnd: null,
+      workEndType: null,
+      restStart: null,
+      restEnd: null,
+      overtimeMinutes: 0,
+    },
+  ];
+
+  for (const dayData of radenOctoberData) {
+    await prisma.attendance.create({
+      data: {
+        userId: user4.id,
+        date: new Date(`2025-10-${dayData.day.toString().padStart(2, "0")}`),
+        workType: dayData.workType as DailyWorkType,
+        workStart: dayData.workStart,
+        workStartType: dayData.workStartType as ClockInType | null,
+        workEnd: dayData.workEnd,
+        workEndType: dayData.workEndType as ClockOutType | null,
+        restStart: dayData.restStart,
+        restEnd: dayData.restEnd,
+        overtimeMinutes: dayData.overtimeMinutes,
+      },
+    });
+  }
+
+  console.log("らでんの10月データを作成しました");
+
+  // ユーザー5: AZKi
+  const user5 = await prisma.user.create({
+    data: {
+      id: "dummy-user-5",
+      email: "azki123@gmail.com",
+      name: "AZKi",
+      department: "Sales",
+      position: "Senior Staff",
+      joinDate: new Date("2023-01-10"),
+      isActive: "Employment",
+      role: "EMPLOYEE",
+      paidLeaveTotal: 20,
+      paidLeaveUsed: 12,
+    },
+  });
+
+  // AZKiの10月の勤怠データ
+  const azkiOctoberData = [
+    {
+      day: 1,
+      workType: "day_working",
+      workStart: "09:00",
+      workStartType: "on_time",
+      workEnd: "19:30",
+      workEndType: "over_time",
+      restStart: "12:00",
+      restEnd: "13:00",
+      overtimeMinutes: 90,
+    },
+    {
+      day: 2,
+      workType: "day_working",
+      workStart: "09:00",
+      workStartType: "on_time",
+      workEnd: "20:00",
+      workEndType: "over_time",
+      restStart: "12:00",
+      restEnd: "13:00",
+      overtimeMinutes: 120,
+    },
+    {
+      day: 3,
+      workType: "paid",
+      workStart: null,
+      workStartType: null,
+      workEnd: null,
+      workEndType: null,
+      restStart: null,
+      restEnd: null,
+      overtimeMinutes: 0,
+    },
+    {
+      day: 4,
+      workType: "day_off",
+      workStart: null,
+      workStartType: null,
+      workEnd: null,
+      workEndType: null,
+      restStart: null,
+      restEnd: null,
+      overtimeMinutes: 0,
+    },
+    {
+      day: 5,
+      workType: "day_off",
+      workStart: null,
+      workStartType: null,
+      workEnd: null,
+      workEndType: null,
+      restStart: null,
+      restEnd: null,
+      overtimeMinutes: 0,
+    },
+  ];
+
+  for (const dayData of azkiOctoberData) {
+    await prisma.attendance.create({
+      data: {
+        userId: user5.id,
+        date: new Date(`2025-10-${dayData.day.toString().padStart(2, "0")}`),
+        workType: dayData.workType as DailyWorkType,
+        workStart: dayData.workStart,
+        workStartType: dayData.workStartType as ClockInType | null,
+        workEnd: dayData.workEnd,
+        workEndType: dayData.workEndType as ClockOutType | null,
+        restStart: dayData.restStart,
+        restEnd: dayData.restEnd,
+        overtimeMinutes: dayData.overtimeMinutes,
+      },
+    });
+  }
+
+  console.log("AZKiの10月データを作成しました");
+  console.log("全ユーザーのシード完了!");
 }
 
 main()

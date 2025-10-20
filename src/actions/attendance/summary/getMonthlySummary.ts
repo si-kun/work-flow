@@ -104,6 +104,10 @@ export const getMonthlySummary = async (
           position: user.position,
           totalWorkHours: totalWorkHours,
           nightWorkHours: nightWorkHours,
+          overtimeHours: attendances.reduce(
+            (sum, att) => sum + (att.overtimeMinutes || 0),
+            0
+          ),
           paidLeaveUsed,
           paidLeaveRemaining: user.paidLeaveTotal - user.paidLeaveUsed,
           absentDays,

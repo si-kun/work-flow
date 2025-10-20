@@ -3,8 +3,10 @@
 import { useAtomValue } from "jotai";
 import EmployeeDialog from "../../../components/dialog/EmployeeDialog";
 import {
-  EMPLOYEE_INPUT_FIELDS,
+  DEPARTMENTS,
   EMPLOYEES_TABLE_HEADER,
+  EMPLOYMENT_STATUS,
+  POSITIONS,
 } from "../../../constants/employee";
 import { useEffect, useMemo, useState } from "react";
 import { useFetchAllUsers } from "@/lib/fetchAllUser";
@@ -21,17 +23,13 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search } from "lucide-react";
-import { User } from "@prisma/client";
 import {
-  convertDepartmentToJapanese,
-  convertPositionToJapanese,
-  convertStatusToJapanese,
+  convertToJapanese,
   getDepartmentCounts,
 } from "@/lib/convertToJapanese";
 import { allUsers } from "@/atoms/user";
 import {
   ATTENDANCE_TABLE_HEADER,
-  MONTHLY_SUMMARY_BY_MONTH,
   MonthlySummaryData,
 } from "@/constants/attendance";
 import AttendanceDetailDialog from "@/components/dialog/AttendanceDetailDialog";
@@ -43,7 +41,6 @@ export default function Home() {
   const [openEmployeeDialog, setOpenEmployeeDialog] = useState(false);
   const [editEmployeeId, setEditEmployeeId] = useState<string | null>(null);
   const [searchEmployee, setSearchEmployee] = useState<string>("");
-  const [targetEmployee, setTargetEmployee] = useState<User[]>([]);
 
   // 期間フィルター
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -55,17 +52,19 @@ export default function Home() {
       const newDate = new Date(prev);
       newDate.setFullYear(parseInt(year));
       return newDate;
-    })
-  }
+    });
+  };
   const handleMonthChange = (month: string) => {
     setSelectedDate((prev) => {
       const newDate = new Date(prev);
       newDate.setMonth(parseInt(month) - 1);
       return newDate;
-    })
-  }
+    });
+  };
 
-  const [fetchedAttendanceMonthData, setFetchedAttendanceMonthData] = useState<MonthlySummaryData[]>([]);
+  const [fetchedAttendanceMonthData, setFetchedAttendanceMonthData] = useState<
+    MonthlySummaryData[]
+  >([]);
 
   // ユーザーの情報をサーバーアクションで取得
   useEffect(() => {
@@ -73,15 +72,15 @@ export default function Home() {
       try {
         const response = await getMonthlySummary(year, month);
 
-        if(response.success) {
-          setFetchedAttendanceMonthData(response.data)
+        if (response.success) {
+          setFetchedAttendanceMonthData(response.data);
         }
-      } catch(error) {
+      } catch (error) {
         console.error("Error fetching attendance data:", error);
       }
-    }
+    };
     getAllAttendanceData();
-  },[year, month])
+  }, [year, month]);
 
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
 
@@ -95,27 +94,49 @@ export default function Home() {
   const handeleEditTarget = (id: string) => {
     setEditEmployeeId((prev) => (prev === id ? null : id));
     setOpenEmployeeDialog(true);
+    console.log(editEmployeeId)
   };
 
   // 検索機能
-  useEffect(() => {
-    let filteredEmployees = allUser;
+  const searchedAndFilteredEmployees = useMemo(() => {
+    let filtered = allUser;
 
     // 名前での絞り込み
     if (searchEmployee !== "") {
-      filteredEmployees = filteredEmployees.filter((user) =>
-        user.name.toLowerCase().includes(searchEmployee.toLowerCase())
+      filtered = filtered.filter((data) =>
+        data.name.toLowerCase().includes(searchEmployee.toLowerCase())
       );
     }
 
     // 部署での絞り込み
     if (selectedDepartment !== "" && selectedDepartment !== "All") {
-      filteredEmployees = filteredEmployees.filter(
-        (user) => user.department === selectedDepartment
+      filtered = filtered.filter(
+        (data) => data.department === selectedDepartment
       );
     }
-    setTargetEmployee(filteredEmployees);
-  }, [searchEmployee, selectedDepartment, allUser]);
+    return filtered;
+  }, [allUser, searchEmployee, selectedDepartment]);
+
+  // 勤怠用のフィルタリング
+  const filteredAttendanceData = useMemo(() => {
+    let filtered = fetchedAttendanceMonthData;
+
+    // 名前での絞り込み
+    if (searchEmployee !== "") {
+      filtered = filtered.filter((data) =>
+        data.name.toLowerCase().includes(searchEmployee.toLowerCase())
+      );
+    }
+
+    // 部署での絞り込み
+    if (selectedDepartment !== "" && selectedDepartment !== "All") {
+      filtered = filtered.filter(
+        (data) => data.department === selectedDepartment
+      );
+    }
+
+    return filtered;
+  }, [fetchedAttendanceMonthData, searchEmployee, selectedDepartment]);
 
   const departmentCounts = getDepartmentCounts(allUser);
   console.log(departmentCounts);
@@ -142,12 +163,12 @@ export default function Home() {
           <div className="flex items-center ml-auto space-x-2">
             <Select onValueChange={setSelectedDepartment}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder={EMPLOYEE_INPUT_FIELDS[2].label} />
+                <SelectValue placeholder={"部署を選択"} />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectLabel>{EMPLOYEE_INPUT_FIELDS[2].name}</SelectLabel>
-                  {EMPLOYEE_INPUT_FIELDS[2].departmentOptions?.map((option) => (
+                  <SelectLabel>部署</SelectLabel>
+                  {DEPARTMENTS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {`${option.label} (${
                         option.value === "All"
@@ -199,14 +220,14 @@ export default function Home() {
 
             {/* データ部分 */}
             <div className="flex-1 border border-t-0">
-              {targetEmployee.map((employee) => {
+              {searchedAndFilteredEmployees.map((employee) => {
                 const cellData = [
                   employee.name,
-                  convertDepartmentToJapanese(employee.department),
-                  convertPositionToJapanese(employee.position),
+                  convertToJapanese(employee.department, DEPARTMENTS),
+                  convertToJapanese(employee.position, POSITIONS),
                   employee.email,
                   employee.joinDate.toLocaleDateString(),
-                  convertStatusToJapanese(employee.isActive),
+                  convertToJapanese(employee.isActive, EMPLOYMENT_STATUS),
                 ];
 
                 return (
@@ -283,13 +304,14 @@ export default function Home() {
           </div>
           {/* テーブル部分 */}
           <div className="flex flex-col border border-slate-300 border-t-0">
-            {fetchedAttendanceMonthData.map((data) => {
+            {filteredAttendanceData.map((data) => {
               const cellData = [
                 data.name,
-                data.department,
-                data.position,
+                convertToJapanese(data.department, DEPARTMENTS),
+                convertToJapanese(data.position, POSITIONS),
                 minutesToTime(data.totalWorkHours),
                 minutesToTime(data.nightWorkHours),
+                minutesToTime(data.overtimeHours),
                 `${data.paidLeaveUsed}日 / ${data.paidLeaveRemaining}日`,
                 data.absentDays + "日",
               ];

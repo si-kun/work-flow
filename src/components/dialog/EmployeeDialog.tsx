@@ -163,33 +163,38 @@ const EmployeeDialog = ({
           console.error("登録失敗:", result.message);
         }
       }
-
     } catch (error) {
       console.error("予期しないエラー:", error);
     }
   };
 
   // デリート処理
-  const handleDelete = async() => {
+  const handleDelete = async () => {
     try {
-
       const result = await deleteEmployee(editEmployee!.id);
 
       if (result.success) {
-        setAllUser((prev) => prev.filter((user) => user.id !== editEmployee!.id));
-        if (setEditEmployeeId) {
-          setEditEmployeeId(null);
-        }
+        setAllUser((prev) =>
+          prev.filter((user) => user.id !== editEmployee!.id)
+        );
       }
       setDeleteConfirmOpen(false);
       setOpenEmployeeDialog(false);
-    } catch(error) {
+    } catch (error) {
       console.error("予期しないエラー:", error);
     }
-  }
+  };
 
   return (
-    <Dialog open={openEmployeeDialog} onOpenChange={setOpenEmployeeDialog}>
+    <Dialog
+      open={openEmployeeDialog}
+      onOpenChange={(isOpen) => {
+        setOpenEmployeeDialog(isOpen);
+        if (!isOpen && setEditEmployeeId) {
+          setEditEmployeeId(null);
+        }
+      }}
+    >
       <DialogTrigger className="bg-green-300 p-2 rounded-lg">
         {mode === "add" ? "従業員を追加" : "従業員情報を編集"}
       </DialogTrigger>
@@ -232,7 +237,7 @@ const EmployeeDialog = ({
                       <SelectContent>
                         <SelectGroup>
                           <SelectLabel>部署名を選択</SelectLabel>
-                          {inputField.departmentOptions?.map((option) => (
+                          {inputField.options?.map((option) => (
                             <SelectItem key={option.value} value={option.value}>
                               {option.label}
                             </SelectItem>
@@ -263,7 +268,7 @@ const EmployeeDialog = ({
                       <SelectContent>
                         <SelectGroup>
                           <SelectLabel>役職を選択</SelectLabel>
-                          {inputField.positionOptions?.map((option) => (
+                          {inputField.options?.map((option) => (
                             <SelectItem key={option.value} value={option.value}>
                               {option.label}
                             </SelectItem>
@@ -286,7 +291,7 @@ const EmployeeDialog = ({
                     value={field.value}
                     onValueChange={field.onChange}
                   >
-                    {inputField.isActiveOptions?.map((option) => (
+                    {inputField.options?.map((option) => (
                       <div
                         key={option.value}
                         className="flex items-center space-x-2"
@@ -295,7 +300,7 @@ const EmployeeDialog = ({
                           value={option.value}
                           id={option.label}
                         />
-                        <Label htmlFor={option.label}>{option.label}</Label>
+                        <Label htmlFor={option.value}>{option.label}</Label>
                       </div>
                     ))}
                   </RadioGroup>
@@ -381,7 +386,10 @@ const EmployeeDialog = ({
             </Button>
             {/* delete button */}
             {mode === "edit" && editEmployee && (
-              <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+              <AlertDialog
+                open={deleteConfirmOpen}
+                onOpenChange={setDeleteConfirmOpen}
+              >
                 <AlertDialogTrigger asChild>
                   <Button variant={"destructive"}>削除</Button>
                 </AlertDialogTrigger>
@@ -395,22 +403,23 @@ const EmployeeDialog = ({
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => setDeleteConfirmOpen(false)}>Cancel</AlertDialogCancel>
-                    <AlertDialogAction className="bg-red-700" onClick={() => handleDelete()}>削除する</AlertDialogAction>
+                    <AlertDialogCancel
+                      onClick={() => setDeleteConfirmOpen(false)}
+                    >
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-red-700"
+                      onClick={() => handleDelete()}
+                    >
+                      削除する
+                    </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
             )}
             {/* close button */}
-            <DialogClose
-              asChild
-              onClick={() => {
-                setOpenEmployeeDialog(false);
-                if (setEditEmployeeId) {
-                  setEditEmployeeId(null);
-                }
-              }}
-            >
+            <DialogClose asChild>
               <Button variant={"secondary"}>Close</Button>
             </DialogClose>
           </DialogFooter>
