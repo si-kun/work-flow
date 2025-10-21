@@ -1,8 +1,14 @@
+"use client"
+
 import AppSidebar from "@/components/sidebar/Sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { useFetchAllUsers } from "@/lib/fetchAllUser";
 import React from "react";
 
 const PrivateLayout = ({ children }: React.ReactNode) => {
+
+  useFetchAllUsers();
+
   return (
     <div>
       <SidebarProvider>

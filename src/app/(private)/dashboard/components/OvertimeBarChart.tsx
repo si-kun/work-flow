@@ -16,6 +16,9 @@ import {
 } from "@/components/ui/chart";
 import { convertToJapanese } from "@/lib/convertToJapanese";
 import { DEPARTMENTS } from "@/constants/employee";
+import { useState } from "react";
+import DepartmentDetailModal from "./DepartmentDetailModal";
+import { useAttendanceData } from "@/hooks/useAttendanceData";
 
 interface OvertimeData {
   department: string;
@@ -24,6 +27,8 @@ interface OvertimeData {
 
 interface OvertimeBarChartProps {
   data: OvertimeData[];
+  year: number;
+  month: number;
 }
 
 const chartConfig = {
@@ -33,15 +38,34 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export default function OvertimeBarChart({ data }: OvertimeBarChartProps) {
+
+export default function OvertimeBarChart({ data,year,month }: OvertimeBarChartProps) {
+
+  const [targetDepartment, setTargetDepartment] = useState<string | null>(null);
+  const [barClickOpen, setBarClickOpen] = useState(false);
+
+  const handleDepartmentClick = (department: string) => {
+    setTargetDepartment(department);
+    setBarClickOpen(true);
+  }
+
+  const {attendanceData} = useAttendanceData({year, month})
+
+  console.log(attendanceData)
+  console.log(targetDepartment)
+
+  const filteredUser = attendanceData.filter((user) => user.department === targetDepartment)
+  console.log("filteredUser", filteredUser)
+
+
   return (
-    <Card  className="h-[80%]">
+    <Card  className="h-full flex flex-col">
       <CardHeader>
         <CardTitle>部署別平均残業時間</CardTitle>
         <CardDescription>今月の部署ごとの平均残業時間</CardDescription>
       </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="h-[80%]">
+      <CardContent className="flex-1 min-h-0">
+        <ChartContainer config={chartConfig} className="h-full w-full">
           <BarChart data={data}>
             <CartesianGrid vertical={false} />
             <XAxis
@@ -53,9 +77,12 @@ export default function OvertimeBarChart({ data }: OvertimeBarChartProps) {
             />
             <YAxis />
             <ChartTooltip content={<ChartTooltipContent />} />
-            <Bar dataKey="overtime" fill="var(--color-overtime)" radius={8} />
+            <Bar dataKey="overtime" fill="var(--color-overtime)" radius={8} onClick={(data) => handleDepartmentClick(data.department)} />
           </BarChart>
         </ChartContainer>
+
+        {/* 対象の従業員一覧のモーダルを開く */}
+        <DepartmentDetailModal isOpen={barClickOpen} setIsOpen={setBarClickOpen} user={filteredUser} />
       </CardContent>
     </Card>
   );

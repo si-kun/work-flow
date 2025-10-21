@@ -17,6 +17,9 @@ import {
 import { convertToJapanese } from "@/lib/convertToJapanese";
 import { DEPARTMENTS } from "@/constants/employee";
 import { minutesToTime } from "@/utils/timeUtils";
+import DepartmentDetailModal from "./DepartmentDetailModal";
+import { useState } from "react";
+import { useAttendanceData } from "@/hooks/useAttendanceData";
 
 interface OvertimeData {
   department: string;
@@ -25,6 +28,8 @@ interface OvertimeData {
 
 interface OvertimePieChartProps {
   data: OvertimeData[];
+  year: number;
+  month: number;
 }
 
 const chartConfig = {
@@ -33,16 +38,33 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export default function OvertimePieChart({ data }: OvertimePieChartProps) {
+export default function OvertimePieChart({
+  data,
+  year,
+  month,
+}: OvertimePieChartProps) {
+
+  const [targetDepartment, setTargetDepartment] = useState<string | null>(null);
+  const [pieClickOpen, setPieClickOpen] = useState(false);
+
+  const {attendanceData} = useAttendanceData({ year, month });
+  const filteredUser = attendanceData.filter((user) => user.department === targetDepartment);
+
+  const handleDepartmentClick = (department: string) => {
+    setTargetDepartment(department);
+    setPieClickOpen(true);
+  }
 
   return (
-    <Card>
+    <Card className="h-full flex flex-col">
       <CardHeader>
         <CardTitle>部署別平均残業時間</CardTitle>
-        <CardDescription>今月の部署ごとの平均残業時間(円グラフ)</CardDescription>
+        <CardDescription>
+          今月の部署ごとの平均残業時間(円グラフ)
+        </CardDescription>
       </CardHeader>
-      <CardContent className="flex justify-center">
-        <ChartContainer config={chartConfig} className="h-[600px] w-[600px]">
+      <CardContent className="flex-1 min-h-0">
+        <ChartContainer config={chartConfig} className="w-full h-full">
           <PieChart>
             <ChartTooltip content={<ChartTooltipContent />} />
             <Pie
@@ -53,10 +75,17 @@ export default function OvertimePieChart({ data }: OvertimePieChartProps) {
               cy="50%"
               outerRadius={150}
               fill="var(--color-overtime)"
-              label={({department,overtime}) => `${convertToJapanese(department,DEPARTMENTS)} ${minutesToTime(overtime)}`}
+              label={({ department, overtime }) =>
+                `${convertToJapanese(department, DEPARTMENTS)} ${minutesToTime(
+                  overtime
+                )}`
+              }
+              onClick={(data) => handleDepartmentClick(data.department)}
             />
           </PieChart>
         </ChartContainer>
+        {/* 対象の従業員一覧のモーダルを開く */}
+        <DepartmentDetailModal isOpen={pieClickOpen} setIsOpen={setPieClickOpen} user={filteredUser} />
       </CardContent>
     </Card>
   );

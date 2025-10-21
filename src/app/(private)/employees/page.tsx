@@ -8,8 +8,7 @@ import {
   EMPLOYMENT_STATUS,
   POSITIONS,
 } from "../../../constants/employee";
-import { useEffect, useMemo, useState } from "react";
-import { useFetchAllUsers } from "@/lib/fetchAllUser";
+import {useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 
 import {
@@ -30,14 +29,12 @@ import {
 import { allUsers } from "@/atoms/user";
 import {
   ATTENDANCE_TABLE_HEADER,
-  MonthlySummaryData,
 } from "@/constants/attendance";
 import AttendanceDetailDialog from "@/components/dialog/AttendanceDetailDialog";
-import { getMonthlySummary } from "@/actions/attendance/summary/getMonthlySummary";
 import { minutesToTime } from "@/utils/timeUtils";
+import { useAttendanceData } from "@/hooks/useAttendanceData";
 
 export default function Home() {
-  useFetchAllUsers(); // 初回レンダリング時に全ユーザーを取得
   const [openEmployeeDialog, setOpenEmployeeDialog] = useState(false);
   const [editEmployeeId, setEditEmployeeId] = useState<string | null>(null);
   const [searchEmployee, setSearchEmployee] = useState<string>("");
@@ -62,25 +59,7 @@ export default function Home() {
     });
   };
 
-  const [fetchedAttendanceMonthData, setFetchedAttendanceMonthData] = useState<
-    MonthlySummaryData[]
-  >([]);
-
-  // ユーザーの情報をサーバーアクションで取得
-  useEffect(() => {
-    const getAllAttendanceData = async () => {
-      try {
-        const response = await getMonthlySummary(year, month);
-
-        if (response.success) {
-          setFetchedAttendanceMonthData(response.data);
-        }
-      } catch (error) {
-        console.error("Error fetching attendance data:", error);
-      }
-    };
-    getAllAttendanceData();
-  }, [year, month]);
+  const {attendanceData } = useAttendanceData({ year, month})
 
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
 
@@ -119,7 +98,7 @@ export default function Home() {
 
   // 勤怠用のフィルタリング
   const filteredAttendanceData = useMemo(() => {
-    let filtered = fetchedAttendanceMonthData;
+    let filtered = attendanceData;
 
     // 名前での絞り込み
     if (searchEmployee !== "") {
@@ -136,7 +115,7 @@ export default function Home() {
     }
 
     return filtered;
-  }, [fetchedAttendanceMonthData, searchEmployee, selectedDepartment]);
+  }, [attendanceData, searchEmployee, selectedDepartment]);
 
   const departmentCounts = getDepartmentCounts(allUser);
   console.log(departmentCounts);
