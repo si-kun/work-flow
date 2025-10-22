@@ -10,8 +10,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { attendanceFields } from "./AttendanceCard";
-import { DailyAttendanceData, DailyWork, DailyWorkType } from "@/types/attendance";
-import { addDays, format } from "date-fns";
+import {
+  DailyAttendanceData,
+  DailyWork,
+  DailyWorkType,
+} from "@/types/attendance";
+import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -20,7 +24,6 @@ import { Controller, useForm } from "react-hook-form";
 import { useAtom } from "jotai";
 import { eventsAtom } from "@/atoms/attendance";
 import { calcWorkAndOvertime } from "@/utils/attendanceCalculations";
-import { timeToMinutes } from "@/utils/timeUtils";
 import {
   Select,
   SelectContent,
@@ -30,6 +33,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { upsertDailyAttendance } from "@/actions/attendance/summary/upsertDailyAttendance";
+import { convertToCalendarEvent } from "@/utils/convertToCalendarEvent";
+import { isSameDate } from "@/utils/dateUtils";
 
 interface EditTimeCardProps {
   data?: DailyAttendanceData;
@@ -81,139 +87,66 @@ const EditTimeCard = ({ data }: EditTimeCardProps) => {
       ? format(new Date(data.date), "yyyy/MM/dd (EEE)", { locale: ja })
       : "未設定";
 
-  // フォームの送信処理
-  const onSubmit = (formData: EditFormData) => {
-    if (!data?.date) return;
 
-    const updatedData: DailyAttendanceData = {
-      ...data,
-      workType: formData.workType,
-      workStart: formData.workStart,
-      workEnd: formData.workEnd,
-      restStart: formData.restStart,
-      restEnd: formData.restEnd,
-    };
 
-    const { overtimeMinutes, workStartType, workEndType } = calcWorkAndOvertime(
-      updatedData.workType as string,
-      updatedData
-    );
+  // フォーム送信処理
+  const onSubmit = async (formData: EditFormData) => {
+    try {
+      // 送信するデータを準備
+      if (!data?.date) return;
 
-    // 夜勤の日付またぎ対応
-    const workStartMinutes = timeToMinutes(updatedData.workStart);
-    const workEndMinutes = timeToMinutes(updatedData.workEnd);
+      const updatedData: DailyAttendanceData = {
+        ...data,
+        workType: formData.workType as DailyWorkType,
+        workStart: formData.workStart,
+        workEnd: formData.workEnd,
+        restStart: formData.restStart,
+        restEnd: formData.restEnd,
+      };
 
-    const isNextDay = workEndMinutes < workStartMinutes;
+      const { overtimeMinutes, workStartType, workEndType } =
+        calcWorkAndOvertime(updatedData.workType as string, updatedData);
 
-    const endDate = isNextDay
-      ? format(addDays(new Date(data.date), 1), "yyyy-MM-dd")
-      : data.date;
+      const finalData: DailyAttendanceData = {
+        ...updatedData,
+        overtimeMinutes,
+        workStartType,
+        workEndType,
+      };
 
-    console.log(data)
+      const response = await upsertDailyAttendance("dummy-user-1", finalData);
 
-    // 既存のイベントがあるか確認
-    const existingEvent = attendanceData.find(
-      (event) => event.extendedProps.date === data.date
-    );
+      console.log("Response", response);
 
-    if (existingEvent) {
-      //  =============== 既存イベントがある場合 ===============
-      setAttendanceData((prev) =>
-        prev.map((event) => {
-          if (event.extendedProps.date === data.date) {
-            // 有給、欠勤、休日の場合は終日イベントにする
-            if (
-              updatedData.workType === "paid" ||
-              updatedData.workType === "paid_pending" ||
-              updatedData.workType === "absenteeism" ||
-              updatedData.workType === "day_off"
-            ) {
-              return {
-                ...event,
-                title:
-                  DailyWork.find((work) => work.value === updatedData.workType)
-                    ?.label || "",
-                start: data.date,
-                end: data.date,
-                allDay: true,
-                extendedProps: {
-                  ...updatedData,
-                  overtimeMinutes: 0,
-                  workStartType: null,
-                  workEndType: null,
-                },
-              };
-            } else {
-              // 日勤、夜勤の場合
-              return {
-                ...event,
-                title:
-                  DailyWork.find((work) => work.value === updatedData.workType)
-                    ?.label || "",
-                start: `${data.date}T${updatedData.workStart}`,
-                end: `${endDate}T${updatedData.workEnd}`,
-                allDay: false,
-                extendedProps: {
-                  ...updatedData,
-                  overtimeMinutes,
-                  workStartType,
-                  workEndType,
-                },
-              };
-            }
-          }
-          return event;
-        })
-      );
-    } else {
-      //  =============== 新規イベントの追加 ===============
-      // 有給・欠勤・休日の場合は終日イベントにする
-      if (
-        updatedData.workType === "paid" ||
-        updatedData.workType === "paid_pending" ||
-        updatedData.workType === "absenteeism" ||
-        updatedData.workType === "day_off"
-      ) {
-        setAttendanceData((prev) => [
-          ...prev,
-          {
-            title:
-              DailyWork.find((work) => work.value === updatedData.workType)
-                ?.label || "",
-            start: data.date,
-            end: data.date,
-            allDay: true,
-            extendedProps: {
-              ...updatedData,
-              overtimeMinutes: 0,
-              workStartType: null,
-              workEndType: null,
-            },
-          },
-        ]);
+      if (response.success) {
+        setEditingDialogOpen(false);
       } else {
-        // 日勤、夜勤の場合
-        setAttendanceData((prev) => [
-          ...prev,
-          {
-            title:
-              DailyWork.find((work) => work.value === updatedData.workType)
-                ?.label || "",
-            start: `${data.date}T${updatedData.workStart}`,
-            end: `${endDate}T${updatedData.workEnd}`,
-            allDay: false,
-            extendedProps: {
-              ...updatedData,
-              overtimeMinutes,
-              workStartType,
-              workEndType,
-            },
-          },
-        ]);
+        alert("勤怠データの更新に失敗しました。");
+        return;
       }
-    }
 
-    setEditingDialogOpen(false);
+      const newEvent = convertToCalendarEvent(finalData);
+
+      // 既存イベントがあるか確認
+      const existingEventIndex = attendanceData.findIndex((event) => {
+        return isSameDate(event.extendedProps.date, finalData.date);
+      });
+
+      if (existingEventIndex !== -1) {
+        //既存イベントを更新
+        setAttendanceData((prev) => {
+          const updated = [...prev];
+          updated[existingEventIndex] = newEvent;
+          return updated;
+        });
+      } else {
+        setAttendanceData((prev) => [...prev, newEvent]);
+      }
+
+      setEditingDialogOpen(false);
+    } catch (error) {
+      console.error("Error updating attendance data:", error);
+    }
   };
 
   // キャンセル時の処理
@@ -238,7 +171,9 @@ const EditTimeCard = ({ data }: EditTimeCardProps) => {
     <Dialog open={editingDialogOpen} onOpenChange={setEditingDialogOpen}>
       <DialogTrigger
         className={`bg-amber-300 rounded-md w-[100px] py-1 ml-auto disabled:bg-gray-300 disabled:opacity-70`}
-        disabled={!data || !data.date || data.date === "未設定"}
+        disabled={
+          !data || !data.date || format(data.date, "yyyy-MM-dd") === "未設定"
+        }
       >
         勤怠を編集
       </DialogTrigger>

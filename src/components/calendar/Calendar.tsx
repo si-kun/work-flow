@@ -5,30 +5,23 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import jaLocale from "@fullcalendar/core/locales/ja";
-import { CalendarEvent } from "@/types/attendance";
-// import { events } from "@/constants/calendarEvents";
+import { CalendarEvent, DailyWork } from "@/types/attendance";
 import { isSameMonth } from "date-fns";
+import { calcWorkAndOvertime } from "@/utils/attendanceCalculations";
+import { convertToJapanese } from "@/lib/convertToJapanese";
 import { useAtomValue } from "jotai";
 import { eventsAtom } from "@/atoms/attendance";
-import { calcWorkAndOvertime } from "@/utils/attendanceCalculations";
+import { MonthlyStatistics } from "@/app/(private)/mypage/attendance/page";
 
 interface CalendarProps {
-  setAcquiredPaidLeaveDays: React.Dispatch<React.SetStateAction<number>>;
-  setWorkingHours: React.Dispatch<React.SetStateAction<number>>;
-  setOvertimeHours: React.Dispatch<React.SetStateAction<number>>;
-  setAbsentDays: React.Dispatch<React.SetStateAction<number>>;
-  setNightShiftHours: React.Dispatch<React.SetStateAction<number>>;
-  setSelectedDate: React.Dispatch<React.SetStateAction<string>>;
+  setStats:  React.Dispatch<React.SetStateAction<MonthlyStatistics>>
+  setSelectedDate: React.Dispatch<React.SetStateAction<Date>>;
   displayMonth: Date;
   setDisplayMonth: React.Dispatch<React.SetStateAction<Date>>;
 }
 
 const Calendar = ({
-  setAcquiredPaidLeaveDays,
-  setWorkingHours,
-  setOvertimeHours,
-  setAbsentDays,
-  setNightShiftHours,
+  setStats,
   setSelectedDate,
   displayMonth,
   setDisplayMonth,
@@ -37,58 +30,35 @@ const Calendar = ({
 
   const events = useAtomValue(eventsAtom);
 
-  // 有給休暇日数を計算
-  const calcAcquiredPaidLeaveDays = (events: CalendarEvent[]) => {
-    const count = events.reduce(
-      (acc, ev) => (ev.extendedProps.workType === "paid" ? acc + 1 : acc),
-      0
+  const calculateStatistics = (events: CalendarEvent[]) => {
+    const result = events.reduce<MonthlyStatistics>(
+      (acc, ev) => {
+        const { workMinutes, overtimeMinutes, nightShiftMinutes } =
+          calcWorkAndOvertime(ev.extendedProps.workType!, ev.extendedProps);
+
+        return {
+          paidLeaveDays:
+            acc.paidLeaveDays + (ev.extendedProps.workType === "paid" ? 1 : 0),
+          acquiredPaidLeaveDays: acc.acquiredPaidLeaveDays + (ev.extendedProps.workType === "paid_pending" ? 1 : 0),
+          workingMinutes: acc.workingMinutes + workMinutes,
+          nightShiftMinutes: acc.nightShiftMinutes + nightShiftMinutes,
+          overtimeMinutes: acc.overtimeMinutes + overtimeMinutes,
+          absentDays:
+            acc.absentDays +
+            (ev.extendedProps.workType === "absenteeism" ? 1 : 0),
+        };
+      },
+      {
+        paidLeaveDays: 0,
+        acquiredPaidLeaveDays: 0,
+        workingMinutes: 0,
+        nightShiftMinutes: 0,
+        overtimeMinutes: 0,
+        absentDays: 0,
+      }
     );
-    setAcquiredPaidLeaveDays(count);
-  };
 
-  // 総労働時間をset関数に
-  const calcWorkingHours = (events: CalendarEvent[]) => {
-    const totalWorkMinutes = events.reduce((acc, ev) => {
-      const { workMinutes } = calcWorkAndOvertime(
-        ev.extendedProps.workType!,
-        ev.extendedProps
-      );
-      return acc + workMinutes;
-    }, 0);
-
-    setWorkingHours(totalWorkMinutes);
-  };
-
-  // 夜勤時間をset関数に
-  const calcNightShiftHours = (events: CalendarEvent[]) => {
-    const totalNightShiftMinutes = events.reduce((acc, ev) => {
-      const { nightShiftMinutes } = calcWorkAndOvertime(
-        ev.extendedProps.workType!,
-        ev.extendedProps
-      );
-      return acc + nightShiftMinutes;
-    }, 0);
-    setNightShiftHours(totalNightShiftMinutes);
-  };
-
-  // 残業時間をset関数に
-  const setOvertime = (events: CalendarEvent[]) => {
-    const totalOvertimeMinutes = events.reduce((acc, ev) => {
-      const { overtimeMinutes } = calcWorkAndOvertime(
-        ev.extendedProps.workType!,
-        ev.extendedProps
-      );
-      return acc + overtimeMinutes;
-    }, 0);
-    setOvertimeHours(totalOvertimeMinutes);
-  };
-
-  // 欠勤日数を取得
-  const caclAbsentDays = (events: CalendarEvent[]) => {
-    const count = events.reduce((acc, ev) => {
-      return ev.extendedProps?.workType === "absenteeism" ? acc + 1 : acc;
-    }, 0);
-    setAbsentDays(count);
+    setStats(result);
   };
 
   const handleDatesSet = (dateInfo: any) => {
@@ -102,23 +72,18 @@ const Calendar = ({
   });
 
   useEffect(() => {
-    calcAcquiredPaidLeaveDays(filteredEvents);
-    setOvertime(filteredEvents);
-    caclAbsentDays(filteredEvents);
-    calcWorkingHours(filteredEvents);
-    calcNightShiftHours(filteredEvents);
+    calculateStatistics(filteredEvents);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [displayMonth, events]);
 
-  const handleSelectEvent = (info: any) => {
-    setSelectedDate(info.event.extendedProps.date);
-    console.log(info.event.extendedProps.date);
+  const handleDateClick = (info: any) => {
+    setSelectedDate(new Date(info.dateStr)); // 文字列 → Date に変換
+    console.log("date click", new Date(info.dateStr));
   };
 
-  const handleDateClick = (info: any) => {
-    // クリックされた日付を取得
-    setSelectedDate(info.dateStr);
-    console.log(info.dateStr);
+  const handleSelectEvent = (info: any) => {
+    setSelectedDate(info.event.extendedProps.date); // すでに Date
+    console.log("select click", info.event.extendedProps.date);
   };
 
   return (
@@ -126,7 +91,7 @@ const Calendar = ({
       ref={calenderRef}
       datesSet={handleDatesSet}
       locale={jaLocale}
-      plugins={[dayGridPlugin,interactionPlugin]}
+      plugins={[dayGridPlugin, interactionPlugin]}
       initialView="dayGridMonth"
       height="auto"
       dateClick={handleDateClick}
@@ -143,7 +108,7 @@ const Calendar = ({
         if (type === "day_working") {
           bgColor = "bg-green-500";
         } else if (type === "overtime") {
-          bgColor = "bg-orange-500";
+          bgColor = "bg-orange-600";
         } else if (type === "paid") {
           bgColor = "bg-yellow-400";
           textColor = "text-black";
@@ -159,11 +124,9 @@ const Calendar = ({
           <div className={`${bgColor} ${textColor} p-1 rounded text-xs`}>
             <div className="flex items-center space-x-1">
               <div className="">
-                {(arg.event.title === "有給休暇" ||
-                  arg.event.title === "有給申請中" ||
-                  arg.event.title === "欠勤" ||
-                  arg.event.title === "休日") &&
-                  arg.event.title}
+                {["paid", "paid_pending", "absenteeism", "day_off"].includes(
+                  arg.event.title
+                ) && convertToJapanese(arg.event.title, DailyWork)}
               </div>
             </div>
             <div>

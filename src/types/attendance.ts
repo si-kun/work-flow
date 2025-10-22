@@ -27,10 +27,9 @@ export const ClockOut = [
 
 export interface DailyAttendanceData  {
     date: Date;
-    workType: DailyWorkType | null;
+    workType: DailyWorkType;
     workStart: string | null;
     workStartType: ClockInType | null;
-    // calculationStart: string;
     workEnd: string | null;
     workEndType: ClockOutType | null;
     restStart: string | null;

@@ -1,4 +1,4 @@
-import { AttendanceData, ClockInType, ClockOutType } from "@/types/attendance";
+import { ClockInType, ClockOutType, DailyAttendanceData } from "@/types/attendance";
 import { minutesToTime, timeToMinutes } from "./timeUtils";
 import { SHIFT_SETTINGS } from "@/constants/attendance";
 
@@ -43,7 +43,7 @@ const calcBreakMinutes = (restStart: string, restEnd: string): number => {
 
 export const calcWorkAndOvertime = (
   type: string,
-  extendProps: AttendanceData
+  extendProps: DailyAttendanceData
 ): {
   workMinutes: number;
   overtimeMinutes: number;
