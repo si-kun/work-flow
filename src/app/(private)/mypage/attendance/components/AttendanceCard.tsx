@@ -6,7 +6,7 @@ import { ja } from "date-fns/locale";
 import EditTimeCard from "./EditTimeCard";
 
 interface AttendanceCardProps {
-  todayAttendance?: DailyAttendanceData;
+  todayAttendance?: DailyAttendanceData | null;
   selectedAttendance?: DailyAttendanceData;
 }
 

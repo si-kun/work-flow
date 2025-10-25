@@ -4,23 +4,23 @@ import Calendar from "@/components/calendar/Calendar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CalendarEvent, DailyAttendanceData } from "@/types/attendance";
-import { determineClockInType } from "@/utils/attendanceUtils";
 import {
-  formatTime,
   minutesToTime,
-  restOneHour,
-  timeToMinutes,
 } from "@/utils/timeUtils";
 import React, { useEffect, useState } from "react";
 import AttendanceCard from "./components/AttendanceCard";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { getDailyAttendance } from "@/actions/attendance/summary/getDailyAttendance";
-import { useAtom } from "jotai";
+import { useAtomValue } from "jotai";
 import { eventsAtom } from "@/atoms/attendance";
 import { isSameDate } from "@/utils/dateUtils";
+import { useFetchAttendance } from "@/hooks/useFetchAttendance";
+import { ClockIn } from "@/actions/attendance/clockIn";
+import { StartBreak } from "@/actions/attendance/startBreak";
+import { ClockOut } from "@/actions/attendance/clockOut";
+import { useFetchTodayAttendance } from "@/hooks/useFetchTodayAttendance";
 
-type WorkStatus = "day_working" | "night_working" | "rest" | "leave";
+export type WorkStatus = "day_working" | "night_working" | "rest" | "leave";
 
 export interface MonthlyStatistics {
   paidLeaveDays: number;
@@ -48,11 +48,6 @@ const Attendance = () => {
     overtimeMinutes,
     absentDays,
   } = stats;
-
-  // 選択されたシフトタイプ
-  const [currentShiftType, setCurrentShiftType] = useState<
-    "day_working" | "night_working" | null
-  >(null);
 
   const [displayMonth, setDisplayMonth] = useState<Date>(new Date());
 
@@ -97,49 +92,14 @@ const Attendance = () => {
   const year = displayMonth.getFullYear();
   const month = displayMonth.getMonth() + 1;
 
-  const [workStatus, setWorkStatus] = useState<WorkStatus>("leave");
-  const [previousWorkStatus, setPreviousWorkStatus] =
-    useState<WorkStatus>("leave");
+  useFetchAttendance("dummy-user-1", year, month);
 
-  const [todayAttendance, setTodayAttendance] = useState<DailyAttendanceData>({
-    date: now,
-    workType: "day_working",
-    workStart: "",
-    workStartType: null,
-    workEnd: "",
-    workEndType: null,
-    restStart: "",
-    restEnd: "",
-    overtimeMinutes: 0,
-  });
+  const { todayAttendance, setTodayAttendance } =
+    useFetchTodayAttendance("dummy-user-1");
 
-  const [events, setEvents] = useAtom<CalendarEvent[]>(eventsAtom);
+  console.log(todayAttendance);
 
-  useEffect(() => {
-    const eventsData = async () => {
-      try {
-        const response = await getDailyAttendance("dummy-user-1", year, month);
-        if (response.success) {
-          setEvents(
-            response.data.map((att) => ({
-              title: att.workType,
-              start: format(att.date, "yyyy-MM-dd"),
-              end: format(att.date, "yyyy-MM-dd"),
-              extendedProps: att,
-            }))
-          );
-        } else {
-          return [];
-        }
-      } catch (error) {
-        console.log("Error fetching events:", error);
-        return [];
-      }
-    };
-    eventsData();
-  }, [year, month, setEvents]);
-
-  console.log(events);
+  const events = useAtomValue<CalendarEvent[]>(eventsAtom);
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedAttendance, setSelectedAttendance] = useState<
@@ -158,95 +118,115 @@ const Attendance = () => {
     setSelectedAttendance(foundAttendance?.extendedProps);
   }, [selectedDate, events]);
 
+  //現在のステータス
+  // 出勤可能かどうか
+  const canClockIn = () => {
+    if(!todayAttendance) return true;
+
+    const isWorking = !todayAttendance.workStart && !todayAttendance.workEnd;
+    return isWorking;
+  };
+  // 休憩可能かどうか
+  const canStartBreak = () => {
+    if (!todayAttendance) return false;
+
+    const isWorking = todayAttendance.workStart && !todayAttendance.workEnd;
+    const hasNotStartedBreak = !todayAttendance.restStart;
+
+    return isWorking && hasNotStartedBreak;
+  };
+
+  // 退勤可能かどうか
+  const canClockOut = () => {
+    if (!todayAttendance) return false;
+
+    return todayAttendance.workStart && !todayAttendance.workEnd;
+  };
+
+  // 現在の状態（表示用）
+  const getCurrentStatus = () => {
+    if (!todayAttendance || todayAttendance.workEnd) {
+      return "退勤中";
+    }
+
+    if (todayAttendance.restStart && !todayAttendance.restEnd) {
+      return "休憩中";
+    }
+
+    if (
+      todayAttendance.workStart &&
+      todayAttendance.workType === "night_working"
+    ) {
+      return "夜勤中";
+    }
+
+    if (
+      todayAttendance.workStart &&
+      todayAttendance.workType === "day_working"
+    ) {
+      return "勤務中";
+    }
+  };
+
   // 現在のステータスによってカラーを変える
   const nowStatusColor = () => {
-    switch (workStatus) {
-      case "day_working":
+    const status = getCurrentStatus();
+
+    switch (status) {
+      case "勤務中":
         return "bg-green-300 text-black";
-      case "night_working":
+      case "夜勤中":
         return "bg-purple-300 text-black";
-      case "rest":
+      case "休憩中":
         return "bg-orange-300 text-black";
-      case "leave":
+      case "退勤中":
         return "bg-red-300 text-white";
     }
   };
 
-  const handleWorking = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleWorking = async (e: React.MouseEvent<HTMLButtonElement>) => {
     const buttonText = (e.target as HTMLButtonElement).textContent;
-    const currentTime = format(now, "HH:mm");
+    // const currentTime = format(now, "HH:mm");
     // 日勤時の処理
     if (buttonText === "出勤") {
-      const result = determineClockInType(currentTime, "day_working");
-      setWorkStatus("day_working");
-      setCurrentShiftType("day_working");
-      setTodayAttendance((prev) => ({
-        ...prev,
-        workStatus: "day_working",
-        workStart: currentTime,
-        workStartType: result.type,
-        calculationStart: result.calculationTime,
-      }));
+      const response = await ClockIn("dummy-user-1", "day_working");
+
+      if (response.success && response.data) {
+        setTodayAttendance(response.data);
+      } else {
+        alert(response.message);
+      }
     }
     // 夜勤時の処理
     else if (buttonText === "夜勤") {
-      const result = determineClockInType(currentTime, "night_working");
-      setWorkStatus("night_working");
-      setCurrentShiftType("night_working");
-      setTodayAttendance((prev) => ({
-        ...prev,
-        workStatus: "night_working",
-        workStart: currentTime,
-        workStartType: result.type,
-        calculationStart: result.calculationTime,
-      }));
+      const response = await ClockIn("dummy-user-1", "night_working");
+      if (response.success && response.data) {
+        setTodayAttendance(response.data);
+      } else {
+        alert(response.message);
+      }
     }
     // 休憩時の処理
     else if (buttonText === "休憩") {
-      setWorkStatus("rest");
-      setPreviousWorkStatus(workStatus);
-      setTodayAttendance((prev) => ({
-        ...prev,
-        workStatus: "rest",
-        restStart: currentTime,
-        restEnd: restOneHour(currentTime),
-      }));
+      const response = await StartBreak("dummy-user-1");
+      if (response.success && response.data) {
+        setTodayAttendance(response.data);
+      } else {
+        alert(response.message);
+        return;
+      }
     }
     // 退勤時の処理
     else if (buttonText === "退勤") {
-      setWorkStatus("leave");
-      setTodayAttendance((prev) => ({
-        ...prev,
-        workStatus: "leave",
-        workEnd: currentTime,
-      }));
+      const response = await ClockOut("dummy-user-1");
+      if (response.success && response.data) {
+        setTodayAttendance(response.data);
+      } else {
+        alert(response.message);
+        return;
+      }
     }
   };
-
-  // 休憩時間の自動終了チェック
-  useEffect(() => {
-    if (workStatus !== "rest" || !todayAttendance.restEnd) {
-      return;
-    }
-
-    const interval = setInterval(() => {
-      const now = new Date();
-      const hours = now.getHours();
-      const minutes = now.getMinutes();
-
-      const currentTime = formatTime(hours, minutes);
-      const currentMinutes = timeToMinutes(currentTime);
-      const restEndMinutes = timeToMinutes(todayAttendance.restEnd as string);
-
-      if (currentMinutes >= restEndMinutes) {
-        setWorkStatus(previousWorkStatus);
-        clearInterval(interval);
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workStatus, todayAttendance.restEnd, previousWorkStatus]);
 
   return (
     <div className="p-10 grid grid-cols-2 gap-10 h-screen overflow-hidden">
@@ -264,7 +244,7 @@ const Attendance = () => {
               variant={"outline"}
               className="w-[70px] h-[70px] rounded-full bg-green-400 hover:bg-green-300"
               onClick={(e) => handleWorking(e)}
-              disabled={workStatus !== "leave"}
+              disabled={!canClockIn()}
             >
               出勤
             </Button>
@@ -272,7 +252,7 @@ const Attendance = () => {
               variant={"outline"}
               className="w-[70px] h-[70px] rounded-full bg-purple-400 hover:bg-purple-300"
               onClick={(e) => handleWorking(e)}
-              disabled={workStatus !== "leave"}
+              disabled={!canClockIn()}
             >
               夜勤
             </Button>
@@ -280,11 +260,7 @@ const Attendance = () => {
               variant={"outline"}
               className="w-[70px] h-[70px] rounded-full bg-orange-400 hover:bg-orange-300 text-white hover:text-white"
               onClick={(e) => handleWorking(e)}
-              disabled={
-                !(
-                  workStatus === "day_working" || workStatus === "night_working"
-                ) || todayAttendance.restStart !== ""
-              }
+              disabled={!canStartBreak()}
             >
               休憩
             </Button>
@@ -292,11 +268,7 @@ const Attendance = () => {
               variant={"outline"}
               className="w-[70px] h-[70px] rounded-full bg-red-400 hover:bg-red-300 text-white hover:text-white"
               onClick={(e) => handleWorking(e)}
-              disabled={
-                workStatus !== "day_working" &&
-                workStatus !== "night_working" &&
-                workStatus !== "rest"
-              }
+              disabled={!canClockOut()}
             >
               退勤
             </Button>
@@ -304,18 +276,10 @@ const Attendance = () => {
           <div
             className={`flex flex-col ${nowStatusColor()} p-4 rounded-lg ml-auto`}
           >
-            <span className={`${workStatus ? "text-black" : "text-white"}`}>
+            <span className={`${nowStatusColor() ? "text-black" : "text-white"}`}>
               現在のステータス:
               <span className="font-bold">
-                {workStatus === "day_working"
-                  ? "勤務中"
-                  : workStatus === "night_working"
-                  ? "夜勤中"
-                  : workStatus === "rest"
-                  ? "休憩中"
-                  : workStatus === "leave"
-                  ? "退勤中"
-                  : "退勤中"}
+                {getCurrentStatus()}
               </span>
             </span>
           </div>

@@ -1,5 +1,9 @@
-import { ClockInType, ClockOutType, DailyAttendanceData } from "@/types/attendance";
-import { minutesToTime, timeToMinutes } from "./timeUtils";
+import {
+  ClockInType,
+  ClockOutType,
+  DailyAttendanceData,
+} from "@/types/attendance";
+import { timeToMinutes } from "./timeUtils";
 import { SHIFT_SETTINGS } from "@/constants/attendance";
 
 // 夜勤の時間を計算 (22時〜翌5時 20時出勤～6時退勤の場合)
@@ -41,16 +45,15 @@ const calcBreakMinutes = (restStart: string, restEnd: string): number => {
   return endMinutes - startMinutes;
 };
 
+type WorkShiftType = "day_working" | "night_working";
+
 export const calcWorkAndOvertime = (
-  type: string,
+  type: WorkShiftType,
   extendProps: DailyAttendanceData
 ): {
   workMinutes: number;
   overtimeMinutes: number;
   nightShiftMinutes: number;
-  nightShiftDisplay: string;
-  workDisplay: string;
-  overtimeDisplay: string;
   workStartType: ClockInType | null;
   workEndType: ClockOutType | null;
 } => {
@@ -58,34 +61,53 @@ export const calcWorkAndOvertime = (
   if (
     extendProps.workType !== "day_working" &&
     extendProps.workType !== "night_working"
+
   ) {
     return {
       workMinutes: 0,
       overtimeMinutes: 0,
       nightShiftMinutes: 0,
-      nightShiftDisplay: "",
-      workDisplay: "",
-      overtimeDisplay: "",
       workStartType: null,
       workEndType: null,
     };
   }
 
-  // ステップ2: 必要なデータがあるかチェック
-  if (!extendProps.workStart || !extendProps.workEnd) {
+  // ステップ2: workStart がない場合
+  if (!extendProps.workStart) {
     return {
       workMinutes: 0,
       overtimeMinutes: 0,
       nightShiftMinutes: 0,
-      nightShiftDisplay: "",
-      workDisplay: "",
-      overtimeDisplay: "",
       workStartType: null,
       workEndType: null,
     };
   }
 
-  // 基本的な計算
+  // ステップ3: 出勤タイプを判定
+  const workStartType = calcClockInType(
+    extendProps.workType,
+    extendProps.workStart
+  );
+
+  // ステップ4: workEnd がない場合(出勤のみ)
+  if (!extendProps.workEnd) {
+    return {
+      workMinutes: 0,
+      overtimeMinutes: 0,
+      nightShiftMinutes: 0,
+      workStartType,
+      workEndType: null,
+    };
+  }
+
+  // ステップ5: 退勤タイプを判定
+  const workEndType = calcClockOutType(
+    extendProps.workType,
+    extendProps.workStart,
+    extendProps.workEnd
+  );
+
+  // ここから既存のロジック(労働時間計算)
   const clockInMinutes = timeToMinutes(extendProps.workStart);
   let clockOutMinutes = timeToMinutes(extendProps.workEnd);
   const breakTime = calcBreakMinutes(
@@ -93,88 +115,84 @@ export const calcWorkAndOvertime = (
     extendProps.restEnd || ""
   );
 
+  // 日付またぎ対応
+  if (clockOutMinutes < clockInMinutes) {
+    clockOutMinutes += 1440;
+  }
+
+  const workMinutes = clockOutMinutes - clockInMinutes - breakTime;
+  const nightShiftMinutes = calcNightShiftMinutes(clockInMinutes, clockOutMinutes);
+
   // シフト設定を取得
   const ShiftSettings =
     type === "day_working"
       ? SHIFT_SETTINGS.day_working
       : SHIFT_SETTINGS.night_working;
-  const shiftStartMinutes = timeToMinutes(ShiftSettings.start);
-  const shiftEndMinutes = timeToMinutes(ShiftSettings.end);
-
-  //出勤タイプを判定
-  let workStartType: ClockInType;
-  if (clockInMinutes < shiftStartMinutes) {
-    workStartType = "early_arrival";
-  } else if (clockInMinutes === shiftStartMinutes) {
-    workStartType = "on_time";
-  } else {
-    workStartType = "late";
-  }
-
-  // 退勤タイプを判定 (日付またぎも考慮)
-  let adjustedClockOutMinutes = clockOutMinutes;
-  let adjustedShiftEndMinutes = shiftEndMinutes;
-
-  if (clockOutMinutes < clockInMinutes) {
-    // 退勤時間より出勤時間が大きい場合、日付またぎ
-    adjustedClockOutMinutes += 1440; // 24時間分を加算
-  }
+  let shiftEndMinutes = timeToMinutes(ShiftSettings.end);
+  
+  // 定時も日付またぎ対応
   if (shiftEndMinutes < clockInMinutes) {
-    // 定時より出勤時間が大きい場合、日付またぎ
-    adjustedShiftEndMinutes += 1440; // 24時間分を加算
+    shiftEndMinutes += 1440;
   }
 
-  let workEndType: ClockOutType;
-  if (adjustedClockOutMinutes < adjustedShiftEndMinutes) {
-    workEndType = "early_leave";
-  } else if (adjustedClockOutMinutes === adjustedShiftEndMinutes) {
-    workEndType = "on_time";
-  } else {
-    workEndType = "over_time";
-  }
-
-
-  // 労働時間を計算
-  clockOutMinutes = adjustedClockOutMinutes;
-  const workMinutes = clockOutMinutes - clockInMinutes - breakTime;
-
-  // ステップ4: 夜勤時間を計算(常に計算する)
-  const nightShiftMinutes = calcNightShiftMinutes(
-    clockInMinutes,
-    clockOutMinutes
-  );
-
-  // ステップ5: 夜勤シフトの場合
-  if (type === "night_working") {
-    return {
-      workMinutes,
-      overtimeMinutes: 0,
-      nightShiftMinutes,
-      nightShiftDisplay:
-        nightShiftMinutes > 0 ? minutesToTime(nightShiftMinutes) : "",
-      workDisplay: minutesToTime(workMinutes),
-      overtimeDisplay: "",
-      workStartType,
-      workEndType,
-    };
-  }
-
-  // 残業時間を計算
-  const regularMinutes = adjustedShiftEndMinutes - clockInMinutes - breakTime;
-
-  // 残業時間を計算
-  const overtimeMinutes =
-    workMinutes > regularMinutes ? workMinutes - regularMinutes : 0;
-
+  // 残業を共通化
+  const regularMinutes = shiftEndMinutes - clockInMinutes - breakTime
+  const overtimeMinutes = workMinutes > regularMinutes ? workMinutes - regularMinutes : 0;
+  
   return {
     workMinutes,
     overtimeMinutes,
     nightShiftMinutes,
-    nightShiftDisplay:
-      nightShiftMinutes > 0 ? minutesToTime(nightShiftMinutes) : "",
-    workDisplay: minutesToTime(workMinutes),
-    overtimeDisplay: overtimeMinutes > 0 ? minutesToTime(overtimeMinutes) : "",
     workStartType,
     workEndType,
   };
+};
+
+// 出勤タイプを判定する
+export const calcClockInType = (
+  workType: "day_working" | "night_working",
+  workStart: string
+): ClockInType => {
+  const clockInMinutes = timeToMinutes(workStart);
+  const shiftSettings = SHIFT_SETTINGS[workType];
+  const shiftStartMinutes = timeToMinutes(shiftSettings.start);
+
+  // 早出の判定範囲（30分)
+  const earlyWindowStart = shiftStartMinutes - shiftSettings.earlyClockInWindow;
+
+  if (clockInMinutes < earlyWindowStart) {
+    return "early_arrival";
+  } else if (clockInMinutes <= shiftStartMinutes) {
+    return "on_time";
+  } else {
+    return "late";
+  }
+};
+
+// 退勤タイプを判定
+export const calcClockOutType = (
+  workType: "day_working" | "night_working",
+  workStart: string,
+  workEnd: string
+): ClockOutType => {
+  const clockInMinutes = timeToMinutes(workStart);
+  let clockOutMinutes = timeToMinutes(workEnd);
+  const shiftSettings = SHIFT_SETTINGS[workType];
+  let shiftEndMinutes = timeToMinutes(shiftSettings.end);
+
+  // 日付またぎの処理
+  if (clockOutMinutes < clockInMinutes) {
+    clockOutMinutes += 1440;
+  }
+  if(shiftEndMinutes < clockInMinutes) {
+    shiftEndMinutes += 1440;
+  }
+
+  if(clockOutMinutes < shiftEndMinutes) {
+    return "early_leave";
+  } else if (clockOutMinutes === shiftEndMinutes) {
+    return "on_time";
+  } else {
+    return "over_time";
+  }
 };
