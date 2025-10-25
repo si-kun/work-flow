@@ -4,6 +4,7 @@ interface ShiftSettings {
   earlyClockInWindow: number;
 }
 
+
 export interface MonthlySummaryData {
   userId: string;
   name: string;

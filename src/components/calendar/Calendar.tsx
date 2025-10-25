@@ -5,13 +5,12 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import jaLocale from "@fullcalendar/core/locales/ja";
-import { CalendarEvent, DailyWork } from "@/types/attendance";
+import { CalendarEvent, DailyWork, MonthlyStatistics } from "@/types/attendance";
 import { isSameMonth } from "date-fns";
 import { calcWorkAndOvertime } from "@/utils/attendanceCalculations";
 import { convertToJapanese } from "@/lib/convertToJapanese";
 import { useAtomValue } from "jotai";
 import { eventsAtom } from "@/atoms/attendance";
-import { MonthlyStatistics } from "@/app/(private)/mypage/attendance/page";
 
 interface CalendarProps {
   setStats:  React.Dispatch<React.SetStateAction<MonthlyStatistics>>
