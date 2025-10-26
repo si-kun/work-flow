@@ -1,11 +1,11 @@
-import { DailyAttendanceData, DailyWork } from "@/types/attendance";
+import { DailyAttendanceData, DAILY_WORK } from "@/types/attendance";
 import { addDays, format } from "date-fns";
 import { timeToMinutes } from "./timeUtils";
 
 export const convertToCalendarEvent = (data: DailyAttendanceData) => {
     // DailyWorkからタイトルを取得
   const title =
-    DailyWork.find((work) => work.value === data.workType)?.label || "";
+  DAILY_WORK.find((work) => work.value === data.workType)?.label || "";
 
     // 休暇系の場合
   if (

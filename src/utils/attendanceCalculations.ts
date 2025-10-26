@@ -2,6 +2,7 @@ import {
   ClockInType,
   ClockOutType,
   DailyAttendanceData,
+  DailyWorkType,
 } from "@/types/attendance";
 import { timeToMinutes } from "./timeUtils";
 import { SHIFT_SETTINGS } from "@/constants/attendance";
@@ -45,10 +46,10 @@ const calcBreakMinutes = (restStart: string, restEnd: string): number => {
   return endMinutes - startMinutes;
 };
 
-type WorkShiftType = "day_working" | "night_working";
+export type WorkShiftType = "day_working" | "night_working";
 
 export const calcWorkAndOvertime = (
-  type: WorkShiftType,
+  type: DailyWorkType,
   extendProps: DailyAttendanceData
 ): {
   workMinutes: number;

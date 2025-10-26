@@ -12,36 +12,23 @@ import {
 import { attendanceFields } from "./AttendanceCard";
 import {
   DailyAttendanceData,
-  DailyWork,
   DailyWorkType,
 } from "@/types/attendance";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Controller, useForm } from "react-hook-form";
-import { useAtom } from "jotai";
-import { eventsAtom } from "@/atoms/attendance";
-import { calcWorkAndOvertime } from "@/utils/attendanceCalculations";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { upsertDailyAttendance } from "@/actions/attendance/summary/upsertDailyAttendance";
-import { convertToCalendarEvent } from "@/utils/convertToCalendarEvent";
-import { isSameDate } from "@/utils/dateUtils";
+import { useForm } from "react-hook-form";
+import EditTimeCardButton from "./EditTimeCardButton";
+import WorkTypeSelect from "./WorkTypeSelect";
+import { useAttendanceSubmit } from "@/hooks/useAttendanceSubmit";
+import { useFormCancel } from "@/hooks/useFormCancel";
 
 interface EditTimeCardProps {
   data?: DailyAttendanceData;
 }
 
-interface EditFormData {
+export interface EditFormData {
   workType: DailyWorkType | null;
   workStart: string;
   workEnd: string;
@@ -50,8 +37,9 @@ interface EditFormData {
 }
 
 const EditTimeCard = ({ data }: EditTimeCardProps) => {
-  const [attendanceData, setAttendanceData] = useAtom(eventsAtom);
   const [editingDialogOpen, setEditingDialogOpen] = useState(false);
+  const {onSubmit} = useAttendanceSubmit({data, setEditingDialogOpen});
+
 
   // react-hook-form
   const { register, handleSubmit, reset, formState, control, watch } =
@@ -77,6 +65,8 @@ const EditTimeCard = ({ data }: EditTimeCardProps) => {
     }
   }, [data, reset]);
 
+  const {handleCancel} = useFormCancel({formState,reset,setEditingDialogOpen});
+
   const selectedWorkType = watch("workType");
 
   const editableFields = attendanceFields.filter(
@@ -87,85 +77,9 @@ const EditTimeCard = ({ data }: EditTimeCardProps) => {
       ? format(new Date(data.date), "yyyy/MM/dd (EEE)", { locale: ja })
       : "未設定";
 
-
-
-  // フォーム送信処理
-  const onSubmit = async (formData: EditFormData) => {
-    try {
-      // 送信するデータを準備
-      if (!data?.date) return;
-
-      const updatedData: DailyAttendanceData = {
-        ...data,
-        workType: formData.workType as DailyWorkType,
-        workStart: formData.workStart,
-        workEnd: formData.workEnd,
-        restStart: formData.restStart,
-        restEnd: formData.restEnd,
-      };
-
-      const { overtimeMinutes, workStartType, workEndType } =
-        calcWorkAndOvertime(updatedData.workType as string, updatedData);
-
-      const finalData: DailyAttendanceData = {
-        ...updatedData,
-        overtimeMinutes,
-        workStartType,
-        workEndType,
-      };
-
-      const response = await upsertDailyAttendance("dummy-user-1", finalData);
-
-      console.log("Response", response);
-
-      if (response.success) {
-        setEditingDialogOpen(false);
-      } else {
-        alert("勤怠データの更新に失敗しました。");
-        return;
-      }
-
-      const newEvent = convertToCalendarEvent(finalData);
-
-      // 既存イベントがあるか確認
-      const existingEventIndex = attendanceData.findIndex((event) => {
-        return isSameDate(event.extendedProps.date, finalData.date);
-      });
-
-      if (existingEventIndex !== -1) {
-        //既存イベントを更新
-        setAttendanceData((prev) => {
-          const updated = [...prev];
-          updated[existingEventIndex] = newEvent;
-          return updated;
-        });
-      } else {
-        setAttendanceData((prev) => [...prev, newEvent]);
-      }
-
-      setEditingDialogOpen(false);
-    } catch (error) {
-      console.error("Error updating attendance data:", error);
-    }
-  };
-
-  // キャンセル時の処理
-  const handleCancel = () => {
-    if (formState.isDirty) {
-      // 変更されている場合、確認ダイアログを表示
-      const confirmed = window.confirm(
-        "変更内容が保存されていません。キャンセルしてもよろしいですか?"
-      );
-
-      if (confirmed) {
-        reset(); // フォームをリセット
-        setEditingDialogOpen(false);
-      }
-    } else {
-      // 変更されていない場合、そのまま閉じる
-      setEditingDialogOpen(false);
-    }
-  };
+  const isWorkingType = (type: DailyWorkType | null) => {
+    return type === "day_working" || type === "night_working"
+  }
 
   return (
     <Dialog open={editingDialogOpen} onOpenChange={setEditingDialogOpen}>
@@ -185,35 +99,9 @@ const EditTimeCard = ({ data }: EditTimeCardProps) => {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1 w-full">
-            <Label>勤務タイプ:</Label>
-            <Controller
-              control={control}
-              name="workType"
-              render={({ field }) => (
-                <Select
-                  value={field.value || ""}
-                  onValueChange={field.onChange}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={"勤務タイプを選択"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>勤務タイプ</SelectLabel>
-                      {DailyWork.map((work) => (
-                        <SelectItem key={work.value} value={work.value}>
-                          {work.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          </div>
-          {(selectedWorkType === "day_working" ||
-            selectedWorkType === "night_working") && (
+
+          <WorkTypeSelect control={control} />
+          {isWorkingType(selectedWorkType) && (
             <>
               {editableFields.map(({ label, key }) => {
                 return (
@@ -229,20 +117,8 @@ const EditTimeCard = ({ data }: EditTimeCardProps) => {
             </>
           )}
           <DialogFooter>
-            <Button
-              variant={"secondary"}
-              type="submit"
-              className="bg-green-500 text-white hover:bg-green-600"
-            >
-              登録する
-            </Button>
-            <Button
-              type="button"
-              onClick={() => handleCancel()}
-              variant={"outline"}
-            >
-              キャンセル
-            </Button>
+            <EditTimeCardButton variant="secondary" type="submit" buttonText="登録する" />
+            <EditTimeCardButton variant="outline" type="button" buttonText="キャンセル" onClick={handleCancel} />
           </DialogFooter>
         </form>
       </DialogContent>

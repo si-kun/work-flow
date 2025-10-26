@@ -1,4 +1,4 @@
-import { ClockIn, ClockInType, ClockOut, ClockOutType, DailyWork, DailyWorkType } from "@/types/attendance";
+import { ClockIn, ClockInType, ClockOut, ClockOutType, DAILY_WORK, DailyWorkType } from "@/types/attendance";
 import { User } from "@prisma/client";
 
 export const convertToJapanese = (
@@ -28,7 +28,7 @@ export const convertToJapanese = (
   export const convertWorkTypeToJapanese = (workType: DailyWorkType | null): string => {
     if(!workType) return "-";
 
-    const found = DailyWork.find((work) => work.value === workType);
+    const found = DAILY_WORK.find((work) => work.value === workType);
     return found ? found.label : workType;
   }
 

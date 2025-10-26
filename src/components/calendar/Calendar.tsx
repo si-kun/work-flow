@@ -5,7 +5,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import jaLocale from "@fullcalendar/core/locales/ja";
-import { CalendarEvent, DailyWork, MonthlyStatistics } from "@/types/attendance";
+import { CalendarEvent, DAILY_WORK, MonthlyStatistics } from "@/types/attendance";
 import { isSameMonth } from "date-fns";
 import { calcWorkAndOvertime } from "@/utils/attendanceCalculations";
 import { convertToJapanese } from "@/lib/convertToJapanese";
@@ -33,7 +33,7 @@ const Calendar = ({
     const result = events.reduce<MonthlyStatistics>(
       (acc, ev) => {
         const { workMinutes, overtimeMinutes, nightShiftMinutes } =
-          calcWorkAndOvertime(ev.extendedProps.workType!, ev.extendedProps);
+          calcWorkAndOvertime(ev.extendedProps.workType, ev.extendedProps);
 
         return {
           paidLeaveDays:
@@ -125,7 +125,7 @@ const Calendar = ({
               <div className="">
                 {["paid", "paid_pending", "absenteeism", "day_off"].includes(
                   arg.event.title
-                ) && convertToJapanese(arg.event.title, DailyWork)}
+                ) && convertToJapanese(arg.event.title, DAILY_WORK)}
               </div>
             </div>
             <div>

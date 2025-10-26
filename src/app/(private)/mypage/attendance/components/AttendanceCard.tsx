@@ -23,52 +23,64 @@ export const attendanceFields: {
 ];
 
 const AttendanceSection = ({ data }: { data?: DailyAttendanceData }) => {
+  const formatDisplayValue =<K extends keyof DailyAttendanceData> (key: K, value: DailyAttendanceData[K] | undefined) => {
+    // 値があるかどうか
+    if (!value) return key === "date" ? "選択されていません" : "--:--";
+
+    // 日付の場合
+    if (key === "date") {
+      const date = value instanceof Date ? value : new Date(value);
+      return format(date, "yyyy/MM/dd (EEE)", { locale: ja });
+    }
+
+    // 残業の場合
+    if (key === "overtimeMinutes" && typeof value === "number") {
+      return minutesToTime(value);
+    }
+
+    return String(value);
+  };
+
+  const getBadgeInfo = (
+    key: keyof DailyAttendanceData,
+    data?: DailyAttendanceData
+  ) => {
+    if (!data) return null;
+
+    // workStartの場合
+    if (key === "workStart") {
+      if (data.workStartType === "early_arrival") {
+        return { text: "(早出)", color: "text-green-500" };
+      }
+      if (data.workStartType === "late") {
+        return { text: "(遅刻)", color: "text-red-500" };
+      }
+    }
+
+    // workEndの場合
+    if (key === "workEnd" && data.workEndType === "early_leave") {
+      return { text: "(早退)", color: "text-red-500" };
+    }
+    return null;
+  };
+
   return (
     <Card className="w-[250px] flex flex-col gap-2 px-4">
       <CardContent className="flex flex-col gap-2 px-0">
         {attendanceFields.map(({ label, key }) => {
-          const value = data
-            ? data[key] || (key === "date" ? "選択されていません" : "--:--")
-            : "--:--";
-
-          let displayValue = value as string;
-
-          if (key === "date") {
-            if (value instanceof Date) {
-              // Date オブジェクトの場合
-              displayValue = format(value, "yyyy/MM/dd (EEE)", { locale: ja });
-            } else if (
-              typeof value === "string" &&
-              value !== "--:--" &&
-              value !== "選択されていません"
-            ) {
-              // 文字列の場合
-              displayValue = format(new Date(value), "yyyy/MM/dd (EEE)", {
-                locale: ja,
-              });
-            } else {
-              displayValue = value as string;
-            }
-          } else if (key === "overtimeMinutes" && typeof value === "number") {
-            displayValue = minutesToTime(value);
-          }
+          const value = data?.[key];
+          const displayValue = formatDisplayValue(key, value);
+          const badge = getBadgeInfo(key, data);
 
           return (
             <div key={key}>
               <span>
                 {label}:{displayValue}
               </span>
-              {key === "workStart" &&
-                data?.workStartType === "early_arrival" && (
-                  <span className="text-green-500 text-xs font-bold">
-                    (早出)
-                  </span>
-                )}
-              {key === "workStart" && data?.workStartType === "late" && (
-                <span className="text-red-500 text-xs font-bold">(遅刻)</span>
-              )}
-              {key === "workEnd" && data?.workEndType === "early_leave" && (
-                <span className="text-red-500 text-xs font-bold">(早退)</span>
+              {badge && (
+                <span className={`${badge.color} text-xs font-bold`}>
+                  {badge.text}
+                </span>
               )}
             </div>
           );

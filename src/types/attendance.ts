@@ -4,11 +4,11 @@ export type CurrentWorkStatus =
   | "rest"
   | "leave";
 
-export type DailyWorkType = (typeof DailyWork)[number]["value"];
+export type DailyWorkType = (typeof DAILY_WORK)[number]["value"];
 export type ClockInType = (typeof ClockIn)[number]["value"];
 export type ClockOutType = (typeof ClockOut)[number]["value"];
 
-export const DailyWork = [
+export const DAILY_WORK = [
   { label: "通常勤務", value: "day_working" },
   { label: "夜勤", value: "night_working" },
   { label: "有給休暇", value: "paid" },
