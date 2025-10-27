@@ -1,6 +1,6 @@
 import { SHIFT_SETTINGS } from "@/constants/attendance";
 import { timeToMinutes } from "./timeUtils";
-import { ClockInType } from "@/types/attendance";
+import { ClockInType, DailyWorkType } from "@/types/attendance";
 
 
 export const determineClockInType = (
@@ -35,3 +35,9 @@ export const determineClockInType = (
     };
   }
 };
+
+
+
+export const isWorkingType = (type: DailyWorkType | null) => {
+  return type === "day_working" || type === "night_working"
+}

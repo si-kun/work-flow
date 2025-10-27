@@ -50,7 +50,7 @@ export const getDailyAttendance = async(userId: string, year: number, month: num
             data: attendanceData,
         }
     } catch(error) {
-        console.log("Error in getDailyAttendance:", error);
+        console.error("Error in getDailyAttendance:", error);
         return {
             success: false,
             message: "日次勤怠データの取得に失敗しました",

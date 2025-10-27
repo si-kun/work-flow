@@ -178,7 +178,7 @@ const Attendance = () => {
           {/* 勤怠データ */}
           <div className="flex gap-4">
             <AttendanceCard todayAttendance={todayAttendance} />
-            <AttendanceCard selectedAttendance={selectedAttendance} />
+            <AttendanceCard selectedAttendance={selectedAttendance} selectedDate={selectedDate} />
           </div>
         </div>
       </div>

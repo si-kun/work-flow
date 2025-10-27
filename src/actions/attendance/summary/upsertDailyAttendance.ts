@@ -1,7 +1,7 @@
 "use server";
 
 import { ApiResponse } from "@/types/api/api";
-import { DailyAttendanceData } from "@/types/attendance";
+import { DailyAttendanceData, DailyWorkType } from "@/types/attendance";
 import { prisma } from "@/utils/prisma/prisma";
 
 export const upsertDailyAttendance = async (
@@ -17,25 +17,25 @@ export const upsertDailyAttendance = async (
         },
       },
       update: {
-        workType: data.workType,
-        workStart: data.workStart,
-        workStartType: data.workStartType,
-        workEnd: data.workEnd,
-        workEndType: data.workEndType,
-        restStart: data.restStart,
-        restEnd: data.restEnd,
+        workType: data.workType as DailyWorkType,
+        workStart: data.workStart || null,
+        workStartType: data.workStartType || null,
+        workEnd: data.workEnd || null,
+        workEndType: data.workEndType || null,
+        restStart: data.restStart || null,
+        restEnd: data.restEnd || null,
         overtimeMinutes: data.overtimeMinutes,
       },
       create: {
         userId: userId,
-        date: new Date(),
-        workType: data.workType,
-        workStart: data.workStart,
-        workStartType: data.workStartType,
-        workEnd: data.workEnd,
-        workEndType: data.workEndType,
-        restStart: data.restStart,
-        restEnd: data.restEnd,
+        date: data.date,
+        workType: data.workType as DailyWorkType,
+        workStart: data.workStart || null,
+        workStartType: data.workStartType || null,
+        workEnd: data.workEnd || null,
+        workEndType: data.workEndType || null,
+        restStart: data.restStart || null,
+        restEnd: data.restEnd || null,
         overtimeMinutes: data.overtimeMinutes,
       },
     });
@@ -46,7 +46,7 @@ export const upsertDailyAttendance = async (
       data: null,
     };
   } catch (error) {
-    console.log(error, "upsertDailyAttendance error");
+    console.error(error, "upsertDailyAttendance error");
     return {
       success: false,
       message: "Error updating daily attendance.",

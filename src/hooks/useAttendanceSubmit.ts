@@ -14,27 +14,44 @@ import { useAtom } from "jotai";
 
 interface UseAttendanceSubmitProps {
   data: DailyAttendanceData | undefined;
+  selectedDate?: Date;
   setEditingDialogOpen: (open: boolean) => void;
 }
 
 export const useAttendanceSubmit = ({
   data,
+  selectedDate,
   setEditingDialogOpen,
 }: UseAttendanceSubmitProps) => {
   const [attendanceData, setAttendanceData] = useAtom(eventsAtom);
   const onSubmit = async (formData: EditFormData) => {
     try {
       // 送信するデータを準備
-      if (!data?.date) return;
+      const targetDate = data?.date || selectedDate;
+      if (!targetDate) return;
 
-      const updatedData: DailyAttendanceData = {
-        ...data,
-        workType: formData.workType as DailyWorkType,
-        workStart: formData.workStart,
-        workEnd: formData.workEnd,
-        restStart: formData.restStart,
-        restEnd: formData.restEnd,
-      };
+      const updatedData: DailyAttendanceData = data
+        ? {
+            // data がある場合（edit モード）
+            ...data,
+            workType: formData.workType as DailyWorkType,
+            workStart: formData.workStart,
+            workEnd: formData.workEnd,
+            restStart: formData.restStart,
+            restEnd: formData.restEnd,
+          }
+        : {
+            // data がない場合（register モード）
+            date: targetDate,
+            workType: formData.workType as DailyWorkType,
+            workStart: formData.workStart,
+            workEnd: formData.workEnd,
+            restStart: formData.restStart,
+            restEnd: formData.restEnd,
+            workStartType: null,
+            workEndType: null,
+            overtimeMinutes: 0,
+          };
 
       const { overtimeMinutes, workStartType, workEndType } =
         calcWorkAndOvertime(updatedData.workType as WorkShiftType, updatedData);
@@ -58,6 +75,8 @@ export const useAttendanceSubmit = ({
       }
 
       const newEvent = convertToCalendarEvent(finalData);
+      console.log("newEvent:", newEvent); // ← 追加
+      console.log("finalData:", finalData); // ← 追加
 
       // 既存イベントがあるか確認
       const existingEventIndex = attendanceData.findIndex((event) => {

@@ -27,7 +27,7 @@ export const useFetchAttendance = (userId: string, year: number, month: number) 
               return [];
             }
           } catch (error) {
-            console.log("Error fetching events:", error);
+            console.error("Error fetching events:", error);
             return [];
           }
         };

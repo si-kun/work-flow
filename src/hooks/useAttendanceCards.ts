@@ -24,7 +24,7 @@ export const useAttendanceCards = () => {
   const ATTENDANCE_CARDS = [
     {
       title: "残りの有給日数",
-      value: paidLeaveDays - acquiredPaidLeaveDays,
+      value: acquiredPaidLeaveDays - paidLeaveDays,
       unit: "日",
     },
     {
@@ -34,7 +34,7 @@ export const useAttendanceCards = () => {
     },
     {
       title: "今月の有給日数",
-      value: acquiredPaidLeaveDays,
+      value: paidLeaveDays,
       unit: "日",
     },
 

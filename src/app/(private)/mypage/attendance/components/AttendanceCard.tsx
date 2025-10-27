@@ -8,6 +8,13 @@ import EditTimeCard from "./EditTimeCard";
 interface AttendanceCardProps {
   todayAttendance?: DailyAttendanceData | null;
   selectedAttendance?: DailyAttendanceData;
+  selectedDate?: Date;
+}
+
+interface AttendanceSectionProps {
+  data?: DailyAttendanceData;
+  mode: "edit" | "register";
+  selectedDate?: Date;
 }
 
 export const attendanceFields: {
@@ -22,15 +29,29 @@ export const attendanceFields: {
   { label: "残業", key: "overtimeMinutes" },
 ];
 
-const AttendanceSection = ({ data }: { data?: DailyAttendanceData }) => {
-  const formatDisplayValue =<K extends keyof DailyAttendanceData> (key: K, value: DailyAttendanceData[K] | undefined) => {
-    // 値があるかどうか
-    if (!value) return key === "date" ? "選択されていません" : "--:--";
-
+const AttendanceSection = ({
+  data,
+  mode,
+  selectedDate,
+}: AttendanceSectionProps) => {
+  const formatDisplayValue = <K extends keyof DailyAttendanceData>(
+    key: K,
+    value: DailyAttendanceData[K] | undefined
+  ) => {
     // 日付の場合
     if (key === "date") {
+      if (!value && selectedDate) {
+        return format(selectedDate, "yyyy/MM/dd (EEE)", { locale: ja });
+      }
+      if (!value) return "選択されていません";
+
       const date = value instanceof Date ? value : new Date(value);
       return format(date, "yyyy/MM/dd (EEE)", { locale: ja });
+    }
+
+    // その他のフィールド
+    if (!value) {
+      return "--:--";
     }
 
     // 残業の場合
@@ -86,7 +107,7 @@ const AttendanceSection = ({ data }: { data?: DailyAttendanceData }) => {
           );
         })}
       </CardContent>
-      <EditTimeCard data={data} />
+      <EditTimeCard data={data} mode={mode} selectedDate={selectedDate} />
     </Card>
   );
 };
@@ -94,8 +115,14 @@ const AttendanceSection = ({ data }: { data?: DailyAttendanceData }) => {
 const AttendanceCard = ({
   todayAttendance,
   selectedAttendance,
+  selectedDate,
 }: AttendanceCardProps) => {
-  return <AttendanceSection data={todayAttendance || selectedAttendance} />;
+  const data = todayAttendance || selectedAttendance;
+  const mode = data ? "edit" : "register";
+
+  return (
+    <AttendanceSection data={data} mode={mode} selectedDate={selectedDate} />
+  );
 };
 
 export default AttendanceCard;

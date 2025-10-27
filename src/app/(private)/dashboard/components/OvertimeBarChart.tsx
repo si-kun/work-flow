@@ -51,11 +51,8 @@ export default function OvertimeBarChart({ data,year,month }: OvertimeBarChartPr
 
   const {attendanceData} = useAttendanceData({year, month})
 
-  console.log(attendanceData)
-  console.log(targetDepartment)
 
   const filteredUser = attendanceData.filter((user) => user.department === targetDepartment)
-  console.log("filteredUser", filteredUser)
 
 
   return (

@@ -60,7 +60,7 @@ const AttendanceDetailDialog = ({
       };
       fetchAttendanceDayData();
     } catch (error) {
-      console.log("Error fetching attendance data:", error);
+      console.error("Error fetching attendance data:", error);
     }
   }, [year, month, userId]);
 
