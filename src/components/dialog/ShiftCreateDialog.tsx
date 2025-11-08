@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 
 import { Button } from "../ui/button";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { convertWorkTypeToJapanese } from "@/lib/convertToJapanese";
 import SelectYearMonth from "../common/SelectYearMonth";
 import { useYearMonth } from "@/hooks/useYearMonth";
@@ -181,6 +181,8 @@ const ShiftCreateDialog = ({
     setEditingShifts(new Map());
   };
 
+  const isUpdatingFromCalendar = useRef(false);
+
   const triggerDisabled = selectedUsers.length === 0;
 
   const handleOpenChange = (open: boolean) => {
@@ -214,6 +216,14 @@ const ShiftCreateDialog = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
+
+// year, monthが変わった時
+useEffect(() => {
+  if (isOpen && !isUpdatingFromCalendar.current) {  // ← フラグをチェック
+    setCalendarKey((prev) => prev + 1);
+  }
+  isUpdatingFromCalendar.current = false;  // フラグをリセット
+}, [year, month]);
 
   // ボタンを押して選択した勤怠タイプをセット
   const handleWorkTypeSelect = (type: ShiftType) => {
@@ -323,12 +333,12 @@ const ShiftCreateDialog = ({
       }
 
       alert("シフトを保存しました。");
-      setUserShiftData((prev) => (
+      setUserShiftData((prev) =>
         prev.map((user) => ({
           ...user,
           select: false,
         }))
-      ))
+      );
       setIsOpen(false);
     } catch (error) {
       console.error(error);
@@ -432,6 +442,18 @@ const ShiftCreateDialog = ({
                 eventClick={(info) => handleEventClick(info)}
                 fixedWeekCount={false}
                 initialView="dayGridMonth"
+                initialDate={new Date(year, month -1, 1)}
+                datesSet={(dateInfo) => {
+                  const newDate = dateInfo.view.currentStart;
+                  const newYear = newDate.getFullYear();
+                  const newMonth = newDate.getMonth() + 1;
+                  
+                  if (newYear !== year || newMonth !== month) {
+                    isUpdatingFromCalendar.current = true;  // ← フラグを立てる
+                    handleYearChange(String(newYear));
+                    handleMonthChange(String(newMonth));
+                  }
+                }}
                 eventContent={(arg) => {
                   const type = arg.event.title as ShiftType;
                   const colors = EVENT_COLORS_BUTTON[type];

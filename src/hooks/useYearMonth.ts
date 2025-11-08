@@ -13,6 +13,7 @@ export const useYearMonth = ():YearMonthData => {
     setSelectedDate((prev) => {
       const newDate = new Date(prev);
       newDate.setFullYear(parseInt(year));
+      console.log("新しい日付:", newDate);
       return newDate;
     });
   };
@@ -20,6 +21,7 @@ export const useYearMonth = ():YearMonthData => {
     setSelectedDate((prev) => {
       const newDate = new Date(prev);
       newDate.setMonth(parseInt(month) - 1);
+      console.log("新しい日付:", newDate);
       return newDate;
     });
   };
