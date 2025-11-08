@@ -4,7 +4,7 @@ import { ApiResponse } from "@/types/api/api";
 import { prisma } from "@/utils/prisma/prisma";
 import { Attendance } from "@prisma/client";
 
-export const GetTodayAttendance = async(userId: string):Promise<ApiResponse<Attendance | null>> => {
+export const getTodayAttendance = async(userId: string):Promise<ApiResponse<Attendance | null>> => {
     try {
 
         // 日付を取得

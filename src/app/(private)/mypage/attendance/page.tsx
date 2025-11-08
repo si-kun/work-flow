@@ -41,7 +41,7 @@ const Attendance = () => {
 
   const events = useAtomValue<CalendarEvent[]>(eventsAtom);
 
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedAttendance, setSelectedAttendance] = useState<
     DailyAttendanceData | undefined
   >(undefined);
@@ -114,7 +114,7 @@ const Attendance = () => {
   };
 
   return (
-    <div className="p-10 grid grid-cols-2 gap-10 h-screen overflow-hidden">
+    <div className="grid grid-cols-2 gap-10 h-screen overflow-hidden">
       {/* ======== 左側のエリア ======== */}
       <div className="flex flex-col">
         {/* ======== 出退勤ボタンなどのエリア ======== */}
@@ -177,8 +177,8 @@ const Attendance = () => {
 
           {/* 勤怠データ */}
           <div className="flex gap-4">
-            <AttendanceCard todayAttendance={todayAttendance} />
-            <AttendanceCard selectedAttendance={selectedAttendance} selectedDate={selectedDate} />
+            <AttendanceCard todayAttendance={todayAttendance} selectedDate={new Date()} title={"今日の勤怠"} />
+            <AttendanceCard selectedAttendance={selectedAttendance} selectedDate={selectedDate} title={"選択した勤怠"} />
           </div>
         </div>
       </div>

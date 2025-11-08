@@ -8,31 +8,22 @@ import {
   EMPLOYMENT_STATUS,
   POSITIONS,
 } from "../../../constants/employee";
-import {useMemo, useState } from "react";
-import { Input } from "@/components/ui/input";
+import { useMemo, useState } from "react";
 
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search } from "lucide-react";
 import {
   convertToJapanese,
   getDepartmentCounts,
 } from "@/lib/convertToJapanese";
 import { allUsers } from "@/atoms/user";
-import {
-  ATTENDANCE_TABLE_HEADER,
-} from "@/constants/attendance";
+import { ATTENDANCE_TABLE_HEADER } from "@/constants/attendance";
 import AttendanceDetailDialog from "@/components/dialog/AttendanceDetailDialog";
 import { minutesToTime } from "@/utils/timeUtils";
 import { useAttendanceData } from "@/hooks/useAttendanceData";
+import EmployeeSearchArea from "@/components/common/EmployeeSearchArea";
+import SelectYearMonth from "@/components/common/SelectYearMonth";
+import { useYearMonth } from "@/hooks/useYearMonth";
+import { useEmployeeFilter } from "@/hooks/useEmployeeFilter";
 
 export default function Home() {
   const [openEmployeeDialog, setOpenEmployeeDialog] = useState(false);
@@ -40,26 +31,9 @@ export default function Home() {
   const [searchEmployee, setSearchEmployee] = useState<string>("");
 
   // 期間フィルター
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const year = selectedDate.getFullYear();
-  const month = selectedDate.getMonth() + 1;
+  const { year, month, handleYearChange, handleMonthChange } = useYearMonth();
 
-  const handleYearChange = (year: string) => {
-    setSelectedDate((prev) => {
-      const newDate = new Date(prev);
-      newDate.setFullYear(parseInt(year));
-      return newDate;
-    });
-  };
-  const handleMonthChange = (month: string) => {
-    setSelectedDate((prev) => {
-      const newDate = new Date(prev);
-      newDate.setMonth(parseInt(month) - 1);
-      return newDate;
-    });
-  };
-
-  const {attendanceData } = useAttendanceData({ year, month})
+  const { attendanceData } = useAttendanceData({ year, month });
 
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
 
@@ -73,52 +47,23 @@ export default function Home() {
   const handeleEditTarget = (id: string) => {
     setEditEmployeeId((prev) => (prev === id ? null : id));
     setOpenEmployeeDialog(true);
-    console.log(editEmployeeId)
+    console.log(editEmployeeId);
   };
 
   // 検索機能
-  const searchedAndFilteredEmployees = useMemo(() => {
-    let filtered = allUser;
+  const searchedAndFilteredEmployees = useEmployeeFilter({
+    data: allUser,
+    searchEmployee,
+    selectedDepartment,
+  });
 
-    // 名前での絞り込み
-    if (searchEmployee !== "") {
-      filtered = filtered.filter((data) =>
-        data.name.toLowerCase().includes(searchEmployee.toLowerCase())
-      );
-    }
-
-    // 部署での絞り込み
-    if (selectedDepartment !== "" && selectedDepartment !== "All") {
-      filtered = filtered.filter(
-        (data) => data.department === selectedDepartment
-      );
-    }
-    return filtered;
-  }, [allUser, searchEmployee, selectedDepartment]);
-
-  // 勤怠用のフィルタリング
-  const filteredAttendanceData = useMemo(() => {
-    let filtered = attendanceData;
-
-    // 名前での絞り込み
-    if (searchEmployee !== "") {
-      filtered = filtered.filter((data) =>
-        data.name.toLowerCase().includes(searchEmployee.toLowerCase())
-      );
-    }
-
-    // 部署での絞り込み
-    if (selectedDepartment !== "" && selectedDepartment !== "All") {
-      filtered = filtered.filter(
-        (data) => data.department === selectedDepartment
-      );
-    }
-
-    return filtered;
-  }, [attendanceData, searchEmployee, selectedDepartment]);
+  const filteredAttendanceData = useEmployeeFilter({
+    data: attendanceData,
+    searchEmployee,
+    selectedDepartment,
+  });
 
   const departmentCounts = getDepartmentCounts(allUser);
-  console.log(departmentCounts);
 
   const frameClass = EMPLOYEES_TABLE_HEADER.map((header) =>
     header.label === "名前" || header.label === "メールアドレス"
@@ -127,7 +72,7 @@ export default function Home() {
   ).join(" ");
 
   return (
-    <div className="w-full h-screen overflow-hidden flex flex-col p-4">
+    <div className=" flex flex-col">
       <Tabs defaultValue="basic" className="flex flex-1 flex-col h-full">
         <header className="flex items-center gap-4 p-5">
           <div className="flex items-center gap-4">
@@ -138,45 +83,24 @@ export default function Home() {
             </TabsList>
           </div>
 
-          {/*======================= 検索エリア =======================  */}
-          <div className="flex items-center ml-auto space-x-2">
-            <Select onValueChange={setSelectedDepartment}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder={"部署を選択"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>部署</SelectLabel>
-                  {DEPARTMENTS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {`${option.label} (${
-                        option.value === "All"
-                          ? allUser.length
-                          : departmentCounts[option.value] ?? 0
-                      })`}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <div className="ml-auto relative">
-              <Search className="absolute top-[50%] left-2 transform -translate-y-[50%]  text-gray-400" />
-              <Input
-                className="pl-10"
-                placeholder="従業員名を検索"
-                value={searchEmployee}
-                onChange={(e) => setSearchEmployee(e.target.value)}
-              />
-            </div>
+          <div className="ml-auto flex items-center gap-4">
+            {/*======================= 検索エリア =======================  */}
+            <EmployeeSearchArea
+              users={allUser}
+              setSelectedDepartment={setSelectedDepartment}
+              departmentCounts={departmentCounts}
+              searchEmployee={searchEmployee}
+              setSearchEmployee={setSearchEmployee}
+            />
+            {/*======================= 従業員追加ボタン =======================  */}
+            <EmployeeDialog
+              openEmployeeDialog={openEmployeeDialog}
+              setOpenEmployeeDialog={setOpenEmployeeDialog}
+              mode={editEmployeeId ? "edit" : "add"}
+              editEmployee={editEmployee}
+              setEditEmployeeId={setEditEmployeeId}
+            />
           </div>
-          {/*======================= 検索エリア =======================  */}
-          <EmployeeDialog
-            openEmployeeDialog={openEmployeeDialog}
-            setOpenEmployeeDialog={setOpenEmployeeDialog}
-            mode={editEmployeeId ? "edit" : "add"}
-            editEmployee={editEmployee}
-            setEditEmployeeId={setEditEmployeeId}
-          />
         </header>
 
         <TabsContent value="basic" className="flex-1 h-full  overflow-y-auto">
@@ -238,38 +162,12 @@ export default function Home() {
           className="flex-1 h-full  overflow-y-auto"
         >
           {/* 期間選択 */}
-          <div className="flex items-center gap-2 mb-4">
-            <Select onValueChange={handleYearChange} value={year.toString()}>
-              <SelectTrigger>
-                <SelectValue placeholder={year} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>年</SelectLabel>
-                  {[...Array(6)].map((_, i) => (
-                    <SelectItem key={i} value={(2020 + i).toString()}>
-                      {2020 + i}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <Select onValueChange={handleMonthChange} value={month.toString()}>
-              <SelectTrigger>
-                <SelectValue placeholder={month} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>月</SelectLabel>
-                  {[...Array(12)].map((_, i) => (
-                    <SelectItem key={i + 1} value={(i + 1).toString()}>
-                      {i + 1}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
+          <SelectYearMonth
+            handleYearChange={handleYearChange}
+            handleMonthChange={handleMonthChange}
+            year={year}
+            month={month}
+          />
           <div className="bg-slate-50 border border-slate-300 flex sticky top-0 z-10">
             {/* ヘッダー部分 */}
             {ATTENDANCE_TABLE_HEADER.map((header) => (

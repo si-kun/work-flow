@@ -63,3 +63,10 @@ export interface MonthlyStatistics {
   overtimeMinutes: number;
   absentDays: number;
 }
+
+export interface YearMonthData {
+  handleYearChange:(year: string) => void
+  handleMonthChange:(month: string) => void
+  year: number;
+  month: number;
+}

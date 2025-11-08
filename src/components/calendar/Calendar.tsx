@@ -3,28 +3,35 @@
 import React, { useEffect, useRef } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
-import interactionPlugin from "@fullcalendar/interaction";
+import interactionPlugin, { DateClickArg } from "@fullcalendar/interaction";
 import jaLocale from "@fullcalendar/core/locales/ja";
-import { CalendarEvent, DAILY_WORK, DailyWorkType, MonthlyStatistics } from "@/types/attendance";
+import {
+  CalendarEvent,
+  DAILY_WORK,
+  DailyWorkType,
+  MonthlyStatistics,
+} from "@/types/attendance";
 import { isSameMonth } from "date-fns";
 import { calcWorkAndOvertime } from "@/utils/attendanceCalculations";
 import { convertToJapanese } from "@/lib/convertToJapanese";
 import { useAtomValue } from "jotai";
 import { eventsAtom } from "@/atoms/attendance";
-import { EventContentArg } from "@fullcalendar/core/index.js";
+import {
+  DatesSetArg,
+  EventClickArg,
+  EventContentArg,
+} from "@fullcalendar/core/index.js";
 import { isWorkingType } from "@/utils/attendanceUtils";
+import { EVENT_COLORS } from "@/constants/calendarColor";
 
 interface CalendarProps {
-  setStats:  React.Dispatch<React.SetStateAction<MonthlyStatistics>>
-  setSelectedDate: React.Dispatch<React.SetStateAction<Date>>;
+  setStats: React.Dispatch<React.SetStateAction<MonthlyStatistics>>;
+  setSelectedDate: React.Dispatch<React.SetStateAction<Date | null>>;
   displayMonth: Date;
   setDisplayMonth: React.Dispatch<React.SetStateAction<Date>>;
 }
 
-interface EventColors {
-  bgColor: string;
-  textColor: string;
-}
+
 
 const Calendar = ({
   setStats,
@@ -45,7 +52,9 @@ const Calendar = ({
         return {
           paidLeaveDays:
             acc.paidLeaveDays + (ev.extendedProps.workType === "paid" ? 1 : 0),
-          acquiredPaidLeaveDays: acc.acquiredPaidLeaveDays + (ev.extendedProps.workType === "paid_pending" ? 1 : 0),
+          acquiredPaidLeaveDays:
+            acc.acquiredPaidLeaveDays +
+            (ev.extendedProps.workType === "paid_pending" ? 1 : 0),
           workingMinutes: acc.workingMinutes + workMinutes,
           nightShiftMinutes: acc.nightShiftMinutes + nightShiftMinutes,
           overtimeMinutes: acc.overtimeMinutes + overtimeMinutes,
@@ -67,7 +76,7 @@ const Calendar = ({
     setStats(result);
   };
 
-  const handleDatesSet = (dateInfo: any) => {
+  const handleDatesSet = (dateInfo: DatesSetArg) => {
     setDisplayMonth(dateInfo.view.currentStart);
   };
 
@@ -82,43 +91,36 @@ const Calendar = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [displayMonth, events]);
 
-  const handleDateClick = (info: any) => {
+  const handleDateClick = (info: DateClickArg) => {
     setSelectedDate(new Date(info.dateStr)); // 文字列 → Date に変換
   };
 
-  const handleSelectEvent = (info: any) => {
+  const handleSelectEvent = (info: EventClickArg) => {
     setSelectedDate(info.event.extendedProps.date); // すでに Date
   };
 
-  const EVENT_COLORS: Record<DailyWorkType, EventColors> = {
-    "day_working": { bgColor: "bg-green-500", textColor: "text-white" },
-    "night_working": { bgColor: "bg-purple-600", textColor: "text-white" },
-    "paid": { bgColor: "bg-yellow-400", textColor: "text-black" },
-    "paid_pending": { bgColor: "bg-yellow-200", textColor: "text-black" },
-    "absenteeism": { bgColor: "bg-red-600", textColor: "text-white" },
-    "day_off": { bgColor: "bg-gray-400", textColor: "text-black" },
-  } as const;
-
   const getEventColors = (type: DailyWorkType) => {
-    return EVENT_COLORS[type] || { bgColor: "bg-blue-500", textColor: "text-white" };
-  }
-
+    return (
+      EVENT_COLORS[type] || { bgColor: "bg-blue-500", textColor: "text-white" }
+    );
+  };
   
   return (
     <FullCalendar
-    ref={calenderRef}
-    datesSet={handleDatesSet}
-    locale={jaLocale}
-    plugins={[dayGridPlugin, interactionPlugin]}
-    initialView="dayGridMonth"
-    height="auto"
-    dateClick={handleDateClick}
-    events={events}
-    eventDisplay="block"
-    eventContent={(arg: EventContentArg) => {
-      const extendProps = arg.event.extendedProps as CalendarEvent["extendedProps"];
-      const type = arg.event.extendedProps.workType as DailyWorkType;
-      const { bgColor, textColor } = getEventColors(type);
+      ref={calenderRef}
+      datesSet={handleDatesSet}
+      locale={jaLocale}
+      plugins={[dayGridPlugin, interactionPlugin]}
+      initialView="dayGridMonth"
+      height="auto"
+      dateClick={handleDateClick}
+      events={events}
+      eventDisplay="block"
+      eventContent={(arg: EventContentArg) => {
+        const extendProps = arg.event
+          .extendedProps as CalendarEvent["extendedProps"];
+        const type = arg.event.extendedProps.workType as DailyWorkType;
+        const { bgColor, textColor } = getEventColors(type);
 
         return (
           <div className={`${bgColor} ${textColor} p-1 rounded text-xs`}>

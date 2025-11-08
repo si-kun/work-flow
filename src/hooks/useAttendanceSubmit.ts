@@ -14,7 +14,7 @@ import { useAtom } from "jotai";
 
 interface UseAttendanceSubmitProps {
   data: DailyAttendanceData | undefined;
-  selectedDate?: Date;
+  selectedDate?: Date | null;
   setEditingDialogOpen: (open: boolean) => void;
 }
 

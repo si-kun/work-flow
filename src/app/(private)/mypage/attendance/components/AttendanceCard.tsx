@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DailyAttendanceData } from "@/types/attendance";
 import { minutesToTime } from "@/utils/timeUtils";
 import { format } from "date-fns";
@@ -8,13 +8,15 @@ import EditTimeCard from "./EditTimeCard";
 interface AttendanceCardProps {
   todayAttendance?: DailyAttendanceData | null;
   selectedAttendance?: DailyAttendanceData;
-  selectedDate?: Date;
+  selectedDate?: Date | null;
+  title: string;
 }
 
 interface AttendanceSectionProps {
   data?: DailyAttendanceData;
   mode: "edit" | "register";
-  selectedDate?: Date;
+  selectedDate?: Date | null;
+  title: string;
 }
 
 export const attendanceFields: {
@@ -33,6 +35,7 @@ const AttendanceSection = ({
   data,
   mode,
   selectedDate,
+  title,
 }: AttendanceSectionProps) => {
   const formatDisplayValue = <K extends keyof DailyAttendanceData>(
     key: K,
@@ -87,6 +90,9 @@ const AttendanceSection = ({
 
   return (
     <Card className="w-[250px] flex flex-col gap-2 px-4">
+      <CardHeader className="font-semibold text-center">
+        {title}
+      </CardHeader>
       <CardContent className="flex flex-col gap-2 px-0">
         {attendanceFields.map(({ label, key }) => {
           const value = data?.[key];
@@ -116,12 +122,13 @@ const AttendanceCard = ({
   todayAttendance,
   selectedAttendance,
   selectedDate,
+  title,
 }: AttendanceCardProps) => {
   const data = todayAttendance || selectedAttendance;
   const mode = data ? "edit" : "register";
 
   return (
-    <AttendanceSection data={data} mode={mode} selectedDate={selectedDate} />
+    <AttendanceSection data={data} mode={mode} selectedDate={selectedDate} title={title} />
   );
 };
 

@@ -25,7 +25,7 @@ import { isWorkingType } from "@/utils/attendanceUtils";
 interface EditTimeCardProps {
   mode: "register" | "edit";
   data?: DailyAttendanceData;
-  selectedDate?: Date;
+  selectedDate?: Date | null;
 }
 
 export interface EditFormData {
