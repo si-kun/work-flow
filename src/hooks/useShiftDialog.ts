@@ -1,0 +1,324 @@
+import { getShiftsByUserAndMonth } from "@/actions/shifts/getShiftsByUserAndMonth";
+import { ShiftTargetUser } from "@/app/(private)/shifts/create/page";
+import { ShiftSettingEvent, ShiftType } from "@/constants/calendarColor";
+import { useEffect, useRef, useState } from "react";
+import { useYearMonth } from "./useYearMonth";
+import { DateClickArg } from "@fullcalendar/interaction/index.js";
+import { EventClickArg } from "@fullcalendar/core/index.js";
+import { createShift } from "@/actions/attendance/shift/createShift";
+
+
+interface UseShiftDialogProps {
+  userShiftData: ShiftTargetUser[];
+  setUserShiftData: React.Dispatch<React.SetStateAction<ShiftTargetUser[]>>;
+  onSaveSuccess?: () => Promise<void>;
+}
+
+export const useShiftDialog = ({
+  userShiftData,
+  setUserShiftData,
+  onSaveSuccess,
+}: UseShiftDialogProps) => {
+  const { year, month, handleYearChange, handleMonthChange } = useYearMonth();
+  // =============== 状態管理 =============== //
+  const [workType, setWorkType] = useState<ShiftType | null>(null);
+  const [deleteMode, setDeleteMode] = useState<boolean>(false);
+  const [hasChanges, setHasChanges] = useState<boolean>(false);
+
+  const [loading, setLoading] = useState<boolean>(true);
+
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [calendarKey, setCalendarKey] = useState<number>(0); // カレンダーの再レンダリング用キー
+
+  // カレンダーのイベント
+  const [events, setEvents] = useState<ShiftSettingEvent[]>([]);
+
+  // シフトの基準となるユーザーを選択
+  const [baseUserId, setBaseUserId] = useState<string>("");
+
+  // 各ユーザーの編中シフトを保存
+  const [editingShifts, setEditingShifts] = useState<
+    Map<string, ShiftSettingEvent[]>
+  >(new Map());
+
+  const [targetuserIds, setTargetUserIds] = useState<string[]>([]);
+
+  // =============== ref =============== //
+  const isUpdatingFromCalendar = useRef(false);
+
+  // =============== 派生値 =============== //
+  // 選択されているユーザーを表示
+  const selectedUsers = userShiftData.filter((user) => user.select);
+
+  // 選択されているユーザーのID配列
+  const ids = selectedUsers.map((user) => user.id);
+
+  const baseUserName =
+    selectedUsers.find((user) => user.id === baseUserId)?.name ?? "";
+
+  const triggerDisabled = selectedUsers.length === 0;
+
+  // =============== 関数 =============== //
+  // リセット処理をまとめる
+  const resetDialog = () => {
+    setLoading(true);
+    setWorkType(null);
+    setDeleteMode(false);
+    setHasChanges(false);
+    setEvents([]);
+    setBaseUserId("");
+    setTargetUserIds([]);
+    setEditingShifts(new Map());
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      // 未保存の変更がある場合は確認
+      if (hasChanges) {
+        const confirmed = window.confirm(
+          "保存されていない変更があります。閉じてもよろしいですか？"
+        );
+
+        if (!confirmed) {
+          return; // キャンセルされたら何もしない（ダイアログは開いたまま）
+        }
+      }
+
+      resetDialog();
+    }
+    setIsOpen(open);
+  };
+
+  // ボタンを押して選択した勤怠タイプをセット
+  const handleWorkTypeSelect = (type: ShiftType) => {
+    // 削除モードが有効の場合は無効にしてからtypeをセット
+    if (deleteMode) {
+      setDeleteMode(false);
+      setWorkType(type);
+    } else {
+      setWorkType(type);
+    }
+  };
+
+  // 削除モードの切り替え
+  const handleDeleteModeToggle = () => {
+    setDeleteMode((prev) => !prev);
+    setWorkType(null);
+  };
+
+  // 日付をクリックして選択した勤怠タイプでイベントを追加
+  const handleClickDate = (info: DateClickArg) => {
+    if (!workType) {
+      alert("先に勤怠タイプを選択してください。");
+      return;
+    }
+
+    // イベントが既に存在しているかどうか
+    const eventExists = events.findIndex(
+      (event) => event.start === info.dateStr
+    );
+
+    if (eventExists !== -1) {
+      // 既存のイベントを更新
+      setEvents((prev) => {
+        const updatedEvents = [...prev];
+        updatedEvents[eventExists] = {
+          title: workType,
+          start: info.dateStr,
+          end: info.dateStr,
+          allDay: true,
+        };
+        console.log("Updated event:", updatedEvents[eventExists]);
+        return updatedEvents;
+      });
+      setHasChanges(true);
+    } else {
+      // 新規イベントを追加
+      const newEvent: ShiftSettingEvent = {
+        title: workType,
+        start: info.dateStr,
+        end: info.dateStr,
+        allDay: true,
+      };
+      setEvents((prev) => [...prev, newEvent]);
+      setHasChanges(true);
+    }
+  };
+
+  // eventをクリックしたら削除
+  const handleEventClick = (info: EventClickArg) => {
+    if (deleteMode) {
+      setEvents((prev) =>
+        prev.filter((event) => event.start !== info.event.startStr)
+      );
+    }
+  };
+
+  const copyShiftData = () => {
+    const baseShifts = editingShifts.get(baseUserId);
+    if (!baseShifts) return;
+
+    setEditingShifts((prev) => {
+      const newMap = new Map(prev);
+
+      // ループ内で全部セット
+      for (const userId of targetuserIds) {
+        if (userId === baseUserId) continue;
+        newMap.set(userId, baseShifts);
+      }
+
+      return newMap; // 最後に一度だけ返す
+    });
+  };
+
+  const submitShiftData = async () => {
+    try {
+      console.log("保存開始");
+      console.log("対象ユーザー(ids):", ids);
+      console.log("editingShifts全体:", editingShifts);
+      for (const userId of ids) {
+        const userShifts = editingShifts.get(userId);
+
+        console.log(`${userId}のシフト:`, userShifts);
+
+        // ユーザーがなければスキップ
+        if (!userShifts || userShifts.length === 0) continue;
+
+        const submitData = {
+          shifts: userShifts.map((event) => ({
+            shiftType: event.title as ShiftType,
+            dates: [event.start],
+          })),
+        };
+
+        console.log(`${userId}の送信データ:`, submitData);
+
+        // 一人ずつ保存
+        const result = await createShift({
+          userIds: [userId],
+          shifts: submitData.shifts,
+          year,
+          month,
+        });
+
+        console.log(`${userId}の保存結果:`, result);
+
+        if (!result.success) {
+          alert(result.message);
+          return;
+        }
+      }
+
+      alert("シフトを保存しました。");
+      if(onSaveSuccess) {
+        await onSaveSuccess();
+      }
+      setUserShiftData((prev) =>
+        prev.map((user) => ({
+          ...user,
+          select: false,
+        }))
+      );
+      setIsOpen(false);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  // =============== useEffect =============== //
+  //基準のユーザーが変わったらDBから対象のシフトを取得、setEditingShiftsにも保存
+  useEffect(() => {
+    const fetchBaseUserShift = async () => {
+      try {
+        if (!baseUserId) return;
+
+        // editingShiftsに既にデータがあればそれを使う
+        const savedShifts = editingShifts.get(baseUserId);
+        if (savedShifts) {
+          setEvents(savedShifts);
+          return;
+        }
+
+        // サーバーアクションを呼び出す
+        const result = await getShiftsByUserAndMonth({
+          userId: baseUserId,
+          year,
+          month,
+        });
+
+        if (result.success) {
+          // 取得したシフトデータをカレンダーイベントに変換してセットする
+          console.log("Fetched shifts:", result.data);
+          const formattedShifts = result.data.map((shift) => ({
+            title: shift.shiftType,
+            start: shift.date.toISOString().split("T")[0],
+            end: shift.date.toISOString().split("T")[0],
+            allDay: true,
+          }));
+          setEvents(formattedShifts);
+        }
+      } catch (error) {
+        console.error("Error fetching base user shifts:", error);
+      }
+    };
+    fetchBaseUserShift();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseUserId, year, month]);
+
+  // eventsが変更されたら、editingShiftsも更新
+  useEffect(() => {
+    if (!baseUserId) return;
+
+    setEditingShifts((prev) => {
+      const newMap = new Map(prev);
+      newMap.set(baseUserId, events);
+      return newMap;
+    });
+  }, [events, baseUserId]);
+
+  // ダイアログが開いた時にカレンダーを再描画、idsをセット
+  useEffect(() => {
+    if (isOpen) {
+      setTargetUserIds(ids);
+
+      // 少し遅延させて再描画
+      setTimeout(() => {
+        setLoading(false);
+        setCalendarKey((prev) => prev + 1);
+      }, 300);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  return {
+    workType,
+    setWorkType,
+    deleteMode,
+    setDeleteMode,
+    hasChanges,
+    setHasChanges,
+    loading,
+    isOpen,
+    handleOpenChange,
+    calendarKey,
+    events,
+    handleClickDate,
+    handleEventClick,
+    baseUserId,
+    setBaseUserId,
+    selectedUsers,
+    baseUserName,
+    triggerDisabled,
+    handleWorkTypeSelect,
+    handleDeleteModeToggle,
+    copyShiftData,
+    submitShiftData,
+    targetuserIds,
+    setTargetUserIds,
+    year,
+    month,
+    handleYearChange,
+    handleMonthChange,
+    isUpdatingFromCalendar,
+  };
+};

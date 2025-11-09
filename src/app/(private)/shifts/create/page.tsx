@@ -20,47 +20,58 @@ import {
   getDepartmentCounts,
 } from "@/lib/convertToJapanese";
 import { DailyWorkType } from "@/types/attendance";
-import { Attendance } from "@prisma/client";
+import { Attendance, Shift } from "@prisma/client";
 import { useAtomValue } from "jotai";
 import React, { useEffect, useState } from "react";
 import ShiftCreateDialog from "@/components/dialog/ShiftCreateDialog";
+import { getShiftsToday } from "@/actions/shifts/getShiftsToday";
+import { ShiftType } from "@/constants/calendarColor";
+
+export interface ShiftTargetUser {
+  id: string;
+  name: string;
+  department: string;
+  position: string;
+  shift_type: string;
+  work_status: string;
+  select: boolean;
+}
 
 const ShiftCreatePage = () => {
   const users = useAtomValue(allUsers);
   const [searchEmployee, setSearchEmployee] = useState<string>("");
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
   const [allAttendanceData, setAllAttendanceData] = useState<Attendance[]>([]);
-  const [userShiftData, setUserShiftData] = useState<
-    Array<{
-      id: string;
-      name: string;
-      department: string;
-      position: string;
-      shift_type: string;
-      work_status: string;
-      select: boolean;
-    }>
-  >([]);
+  const [userShiftData, setUserShiftData] = useState<Array<ShiftTargetUser>>(
+    []
+  );
 
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState<Date>(new Date());
 
+  const [allShiftData, setAllShiftData] = useState<Shift[]>([]);
 
+  const fetchData = async () => {
+    try {
+      const attendanceResponse = await getTodayAllAttendance(date);
+
+      if (attendanceResponse.success) {
+        setAllAttendanceData(attendanceResponse.data);
+      }
+
+      const shiftResponse = await getShiftsToday(date);
+
+      if (shiftResponse.success) {
+        setAllShiftData(shiftResponse.data);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   useEffect(() => {
-    // if(!date) return;
-    const fetchTodayAllAttendance = async () => {
-      try {
-        const response = await getTodayAllAttendance(date);
-
-        if (response.success) {
-          setAllAttendanceData(response.data);
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    };
-    fetchTodayAllAttendance();
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date]);
 
   useEffect(() => {
@@ -72,18 +83,20 @@ const ShiftCreatePage = () => {
         (att) => att.userId === user.id
       );
 
+      const shift = allShiftData.find((sft) => sft.userId === user.id);
+
       return {
         id: user.id,
         name: user.name,
         department: user.department,
         position: user.position,
-        shift_type: "未定",
+        shift_type: shift?.shiftType || "未設定",
         work_status: attendance?.workType || "未設定",
         select: false,
       };
     });
     setUserShiftData(mergedData);
-  }, [users, allAttendanceData]);
+  }, [users, allAttendanceData, allShiftData]);
 
   const filteredUsers = useEmployeeFilter({
     data: userShiftData,
@@ -144,7 +157,11 @@ const ShiftCreatePage = () => {
               </PopoverContent>
             </Popover>
           </div>
-          <ShiftCreateDialog userShiftData={userShiftData} setUserShiftData={setUserShiftData} />
+          <ShiftCreateDialog
+            userShiftData={userShiftData}
+            setUserShiftData={setUserShiftData}
+            onSaveSuccess={fetchData}
+          />
         </div>
 
         {/* 検索フィールド */}
@@ -175,7 +192,7 @@ const ShiftCreatePage = () => {
               user.name,
               convertToJapanese(user.department, DEPARTMENTS),
               convertToJapanese(user.position, POSITIONS),
-              user.shift_type,
+              convertWorkTypeToJapanese(user.shift_type as ShiftType),
               convertWorkTypeToJapanese(user.work_status as DailyWorkType),
             ];
 

@@ -41,6 +41,20 @@ export const createShift = async ({
             }
           }
         })
+
+        // 既存の勤怠データ(休日・有給)も削除する
+        await tx.attendance.deleteMany({
+          where: {
+            userId,
+            date: {
+              gte: startDate,
+              lt: endDate,
+            },
+            workType: {
+              in: ["paid", "day_off"],
+            }
+          }
+        })
         // 各シフトデータに対して
         for (const shift of shifts) {
           // 各日付に対して
@@ -56,6 +70,17 @@ export const createShift = async ({
                 shiftType: shift.shiftType,
               }
             })
+
+            // 休日、または有給の場合、勤怠データも自動作成
+            if(shift.shiftType === "paid" || shift.shiftType === "day_off") {
+              await tx.attendance.create({
+                data: {
+                  userId,
+                  date: new Date(date),
+                  workType: shift.shiftType
+                }
+              })
+            }
           }
         }
       }
