@@ -27,7 +27,7 @@ const SIDEBAR_LINKS = [
   {
     name: "シフト管理",
     children: [
-      { name: "シフト一覧", href: "/shifts" },
+      { name: "シフト一覧", href: "/shifts/list" },
       { name: "シフト作成", href: "/shifts/create" },
     ],
   },

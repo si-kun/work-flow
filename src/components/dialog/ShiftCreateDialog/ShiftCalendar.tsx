@@ -2,7 +2,11 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin, { DateClickArg } from "@fullcalendar/interaction";
 import jaLocale from "@fullcalendar/core/locales/ja";
-import { EVENT_COLORS_BUTTON, ShiftSettingEvent, ShiftType } from "@/constants/calendarColor";
+import {
+  EVENT_COLORS_BUTTON,
+  ShiftSettingEvent,
+  ShiftType,
+} from "@/constants/calendarColor";
 import { RefObject } from "react";
 import { convertWorkTypeToJapanese } from "@/lib/convertToJapanese";
 import { EventClickArg } from "@fullcalendar/core/index.js";
@@ -14,9 +18,9 @@ interface ShiftCalendarProps {
   handleEventClick: (info: EventClickArg) => void;
   year: number;
   month: number;
-  isUpdatingFromCalendar:RefObject<boolean>
-  handleYearChange:(year: string) => void;
-  handleMonthChange:(month: string) => void;
+  isUpdatingFromCalendar: RefObject<boolean>;
+  handleYearChange: (year: string) => void;
+  handleMonthChange: (month: string) => void;
 }
 
 const ShiftCalendar = ({

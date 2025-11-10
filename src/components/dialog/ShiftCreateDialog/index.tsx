@@ -1,7 +1,6 @@
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
 import { Button } from "../../ui/button";
-import { Spinner } from "../../ui/spinner";
 import BaseUserSelect from "./BaseUserSelect";
 import { ShiftTargetUser } from "@/app/(private)/shifts/create/page";
 import TargetUserSelect from "./TargetUserSelect";
@@ -9,12 +8,12 @@ import CopyShiftConfirmDialog from "./CopyShiftConfirmDialog";
 import ShiftDialogHeader from "./ShiftDialogHeader";
 import ShiftCalendar from "./ShiftCalendar";
 import { useShiftDialog } from "@/hooks/useShiftDialog";
+import Loading from "@/components/loading/Loading";
 
 interface ShiftCreateDialogProps {
   userShiftData: ShiftTargetUser[];
   setUserShiftData: React.Dispatch<React.SetStateAction<ShiftTargetUser[]>>;
   onSaveSuccess?: () => Promise<void>;
-
 }
 
 const ShiftCreateDialog = ({
@@ -22,7 +21,8 @@ const ShiftCreateDialog = ({
   setUserShiftData,
   onSaveSuccess,
 }: ShiftCreateDialogProps) => {
-  const {    workType,
+  const {
+    workType,
     deleteMode,
     loading,
     isOpen,
@@ -46,11 +46,12 @@ const ShiftCreateDialog = ({
     month,
     handleYearChange,
     handleMonthChange,
-    isUpdatingFromCalendar,} = useShiftDialog({
+    isUpdatingFromCalendar,
+  } = useShiftDialog({
     userShiftData,
     setUserShiftData,
-    onSaveSuccess
-  })
+    onSaveSuccess,
+  });
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -79,9 +80,7 @@ const ShiftCreateDialog = ({
 
           <form className="flex flex-col gap-4 flex-1 w-full relative">
             {loading && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Spinner className="" />
-              </div>
+              <Loading />
             )}
             <div
               className={`flex-1 min-h-0 overflow-hidden transition-opacity duration-500 ${

@@ -298,6 +298,7 @@ export const useShiftDialog = ({
     hasChanges,
     setHasChanges,
     loading,
+    setLoading,
     isOpen,
     handleOpenChange,
     calendarKey,

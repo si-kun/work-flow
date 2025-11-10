@@ -8,7 +8,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { getTodayAllAttendance } from "@/actions/attendance/getTodayAllAttendance";
 import { allUsers } from "@/atoms/user";
 import EmployeeSearchArea from "@/components/common/EmployeeSearchArea";
 import { DEPARTMENTS, POSITIONS } from "@/constants/employee";
@@ -20,83 +19,23 @@ import {
   getDepartmentCounts,
 } from "@/lib/convertToJapanese";
 import { DailyWorkType } from "@/types/attendance";
-import { Attendance, Shift } from "@prisma/client";
 import { useAtomValue } from "jotai";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import ShiftCreateDialog from "@/components/dialog/ShiftCreateDialog";
-import { getShiftsToday } from "@/actions/shifts/getShiftsToday";
 import { ShiftType } from "@/constants/calendarColor";
-
-export interface ShiftTargetUser {
-  id: string;
-  name: string;
-  department: string;
-  position: string;
-  shift_type: string;
-  work_status: string;
-  select: boolean;
-}
+import TableSkeleton from "@/components/loading/TableSkeleton";
+import { useShiftListData } from "@/hooks/useShiftListData";
 
 const ShiftCreatePage = () => {
   const users = useAtomValue(allUsers);
   const [searchEmployee, setSearchEmployee] = useState<string>("");
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
-  const [allAttendanceData, setAllAttendanceData] = useState<Attendance[]>([]);
-  const [userShiftData, setUserShiftData] = useState<Array<ShiftTargetUser>>(
-    []
-  );
 
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState<Date>(new Date());
 
-  const [allShiftData, setAllShiftData] = useState<Shift[]>([]);
 
-  const fetchData = async () => {
-    try {
-      const attendanceResponse = await getTodayAllAttendance(date);
-
-      if (attendanceResponse.success) {
-        setAllAttendanceData(attendanceResponse.data);
-      }
-
-      const shiftResponse = await getShiftsToday(date);
-
-      if (shiftResponse.success) {
-        setAllShiftData(shiftResponse.data);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date]);
-
-  useEffect(() => {
-    // userShiftにusersとallAttendanceDataをマージしてセットする
-    if (!users) return;
-
-    const mergedData = users.map((user) => {
-      const attendance = allAttendanceData.find(
-        (att) => att.userId === user.id
-      );
-
-      const shift = allShiftData.find((sft) => sft.userId === user.id);
-
-      return {
-        id: user.id,
-        name: user.name,
-        department: user.department,
-        position: user.position,
-        shift_type: shift?.shiftType || "未設定",
-        work_status: attendance?.workType || "未設定",
-        select: false,
-      };
-    });
-    setUserShiftData(mergedData);
-  }, [users, allAttendanceData, allShiftData]);
+   const {loading,userShiftData,refetch,setUserShiftData} = useShiftListData(date);
 
   const filteredUsers = useEmployeeFilter({
     data: userShiftData,
@@ -160,7 +99,7 @@ const ShiftCreatePage = () => {
           <ShiftCreateDialog
             userShiftData={userShiftData}
             setUserShiftData={setUserShiftData}
-            onSaveSuccess={fetchData}
+            onSaveSuccess={refetch}
           />
         </div>
 
@@ -187,34 +126,38 @@ const ShiftCreatePage = () => {
           })}
         </ul>
         <ul className="grid grid-cols-5 border-slate-300 border-l border-r">
-          {filteredUsers.map((user) => {
-            const userCellData = [
-              user.name,
-              convertToJapanese(user.department, DEPARTMENTS),
-              convertToJapanese(user.position, POSITIONS),
-              convertWorkTypeToJapanese(user.shift_type as ShiftType),
-              convertWorkTypeToJapanese(user.work_status as DailyWorkType),
-            ];
+          {loading ? (
+            <TableSkeleton />
+          ) : (
+            filteredUsers.map((user) => {
+              const userCellData = [
+                user.name,
+                convertToJapanese(user.department, DEPARTMENTS),
+                convertToJapanese(user.position, POSITIONS),
+                convertWorkTypeToJapanese(user.shift_type as ShiftType),
+                convertWorkTypeToJapanese(user.work_status as DailyWorkType),
+              ];
 
-            return (
-              <li
-                key={user.id}
-                className="contents group cursor-pointer"
-                onClick={() => handleSelect(user.id)}
-              >
-                {userCellData.map((data, index) => (
-                  <div
-                    key={`${user.id}-${index}`}
-                    className={`p-2 border-b border-r border-slate-300 group-hover:bg-slate-50 ${
-                      user.select ? "bg-amber-200" : ""
-                    }`}
-                  >
-                    {data}
-                  </div>
-                ))}
-              </li>
-            );
-          })}
+              return (
+                <li
+                  key={user.id}
+                  className="contents group cursor-pointer"
+                  onClick={() => handleSelect(user.id)}
+                >
+                  {userCellData.map((data, index) => (
+                    <div
+                      key={`${user.id}-${index}`}
+                      className={`p-2 border-b border-r border-slate-300 group-hover:bg-slate-50 ${
+                        user.select ? "bg-amber-200" : ""
+                      }`}
+                    >
+                      {data}
+                    </div>
+                  ))}
+                </li>
+              );
+            })
+          )}
         </ul>
       </div>
     </div>
