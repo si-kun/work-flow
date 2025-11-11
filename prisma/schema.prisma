@@ -22,7 +22,7 @@ model User {
   position   String // 役職
   joinDate   DateTime // 入社日
   isActive   String   @default("Employment") // 雇用形態 (Employment, Leave, Retirement)
-  role       Role     @default(EMPLOYEE) // 権限 (ADMIN, MANAGER, EMPLOYEE)
+  role       Role     @default(EMPLOYEE) // 権限 (ADMIN, EMPLOYEE)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -35,7 +35,6 @@ model User {
 
 enum Role {
   ADMIN
-  MANAGER
   EMPLOYEE
 }
 

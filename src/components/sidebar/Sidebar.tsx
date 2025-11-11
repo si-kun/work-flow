@@ -22,6 +22,7 @@ const SIDEBAR_LINKS = [
       { name: "従業員一覧", href: "/employees" },
       { name: "勤怠データ", href: "/mypage/attendance" },
       { name: "部署別残業一覧", href: "/dashboard" },
+      { name: "権限管理", href: "/roles" },
     ],
   },
   {

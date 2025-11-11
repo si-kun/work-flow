@@ -81,6 +81,11 @@ export const EMPLOYMENT_STATUS = [
   { label: "入社予定", value: "PlannedJoining" },
 ] as const;
 
+export const EMPLOYMENT_ROLES = [
+  { label: "管理者", value: "ADMIN" },
+  { label: "一般ユーザー", value: "EMPLOYEE" },
+] as const;
+
 export const EMPLOYEE_INPUT_FIELDS = [
   {
     name: "name",

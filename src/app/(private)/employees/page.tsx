@@ -37,6 +37,8 @@ export default function Home() {
 
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
 
+
+
   const allUser = useAtomValue(allUsers);
 
   const editEmployee = useMemo(
@@ -108,7 +110,6 @@ export default function Home() {
           <div className="flex-1 h-full">
             {/* ヘッダー部分 */}
             <div className="bg-slate-50 border border-slate-300 flex sticky top-0 z-10">
-              <span></span>
               {EMPLOYEES_TABLE_HEADER.map((header, idx) => (
                 <span
                   key={header.id}
