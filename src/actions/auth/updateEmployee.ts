@@ -7,14 +7,6 @@ import { prisma } from "@/utils/prisma/prisma";
 export const updateEmployee = async (id:string,data: EmployeeFormData): Promise<ApiResponse<null>> => {
 
   try {
-
-    // ================== 後で実装==================
-    // supabaseのユーザー情報を更新 === 後で実装===
-    // await supabase.auth.admin.updateUserById(id, {
-    //   email: data.email,
-    // })
-    // ================== 後で実装==================
-
     await prisma.user.update({
       where: { id, },
       data: {
