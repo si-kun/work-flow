@@ -1,623 +1,179 @@
-import { ClockInType, ClockOutType, DailyWorkType } from "@/types/attendance";
+import { DAILY_WORK } from "@/types/attendance";
 import { prisma } from "@/utils/prisma/prisma";
 
-async function main() {
-  console.log("シードデータの投入を開始します...");
+const getRandomElement = <T>(arr: readonly T[]): T =>
+  arr[Math.floor(Math.random() * arr.length)];
 
-  // 既存のデータを削除(開発環境のみ)
+const getRandomOvertime = () => {
+  const values = [0, 10, 20, 30, 40, 50, 60];
+  return values[Math.floor(Math.random() * values.length)];
+};
+
+// 勤務時間をランダム生成
+const generateWorkTimes = (workType: string) => {
+  if (workType === "day_working") {
+    const startHour = 8 + Math.floor(Math.random() * 2);
+    const startMinute = Math.random() < 0.5 ? "00" : "15";
+    const endHour = 17 + Math.floor(Math.random() * 2);
+    return {
+      workStart: `${startHour.toString().padStart(2, "0")}:${startMinute}`,
+      workStartType:
+        startHour > 9 || (startHour === 9 && startMinute !== "00")
+          ? "late"
+          : "on_time",
+      workEnd: `${endHour.toString().padStart(2, "0")}:00`,
+      workEndType: endHour > 18 ? "over_time" : "on_time",
+      restStart: "12:00",
+      restEnd: "13:00",
+    };
+  }
+
+  if (workType === "night_working") {
+    return {
+      workStart: "22:00",
+      workStartType: "on_time",
+      workEnd: "06:00",
+      workEndType: "on_time",
+      restStart: "02:00",
+      restEnd: "03:00",
+    };
+  }
+
+  return {
+    workStart: null,
+    workStartType: null,
+    workEnd: null,
+    workEndType: null,
+    restStart: null,
+    restEnd: null,
+  };
+};
+
+async function main() {
+  console.log("🌱 シード開始...");
+
+  // 既存のデータを削除
+  await prisma.shift.deleteMany();
   await prisma.attendance.deleteMany();
   await prisma.user.deleteMany();
 
   // ユーザー1: ReoNa
-  const user1 = await prisma.user.create({
-    data: {
+  const users = [
+    {
       id: "dummy-user-1",
       email: "reona123@gmail.com",
       name: "ReoNa",
       department: "Sales",
       position: "Designer",
       joinDate: new Date("2023-10-20"),
-      isActive: "Employment",
-      role: "EMPLOYEE",
       paidLeaveTotal: 20,
       paidLeaveUsed: 5,
     },
-  });
-
-  // ReoNaの9月の勤怠データ(5日分)
-  const reonaSeptemberData = [
     {
-      day: 1,
-      workType: "day_working",
-      workStart: "09:15",
-      workStartType: "late",
-      workEnd: "18:00",
-      workEndType: "on_time",
-      restStart: "12:00",
-      restEnd: "13:00",
-      overtimeMinutes: 0,
-    },
-    {
-      day: 2,
-      workType: "day_working",
-      workStart: "09:00",
-      workStartType: "on_time",
-      workEnd: "17:30",
-      workEndType: "early_leave",
-      restStart: "12:00",
-      restEnd: "13:00",
-      overtimeMinutes: 0,
-    },
-    {
-      day: 3,
-      workType: "day_working",
-      workStart: "08:45",
-      workStartType: "early_arrival",
-      workEnd: "19:00",
-      workEndType: "over_time",
-      restStart: "12:00",
-      restEnd: "13:00",
-      overtimeMinutes: 60,
-    },
-    {
-      day: 4,
-      workType: "paid",
-      workStart: null,
-      workStartType: null,
-      workEnd: null,
-      workEndType: null,
-      restStart: null,
-      restEnd: null,
-      overtimeMinutes: 0,
-    },
-    {
-      day: 5,
-      workType: "day_working",
-      workStart: "09:30",
-      workStartType: "late",
-      workEnd: "18:00",
-      workEndType: "on_time",
-      restStart: "12:00",
-      restEnd: "13:00",
-      overtimeMinutes: 0,
-    },
-  ];
-
-  for (const dayData of reonaSeptemberData) {
-    await prisma.attendance.create({
-      data: {
-        userId: user1.id,
-        date: new Date(`2025-09-${dayData.day.toString().padStart(2, "0")}`),
-        workType: dayData.workType as DailyWorkType,
-        workStart: dayData.workStart,
-        workStartType: dayData.workStartType as ClockInType | null,
-        workEnd: dayData.workEnd,
-        workEndType: dayData.workEndType as ClockOutType | null,
-        restStart: dayData.restStart,
-        restEnd: dayData.restEnd,
-        overtimeMinutes: dayData.overtimeMinutes,
-      },
-    });
-  }
-
-  console.log("ReoNaの9月データを作成しました");
-
-  console.log("シード完了!");
-
-  const reonaOctoberData = [
-    {
-      day: 1,
-      workType: "day_working",
-      workStart: "09:00",
-      workStartType: "on_time",
-      workEnd: "18:00",
-      workEndType: "on_time",
-      restStart: "12:00",
-      restEnd: "13:00",
-      overtimeMinutes: 0,
-    },
-    {
-      day: 2,
-      workType: "day_working",
-      workStart: "09:00",
-      workStartType: "on_time",
-      workEnd: "18:00",
-      workEndType: "on_time",
-      restStart: "12:00",
-      restEnd: "13:00",
-      overtimeMinutes: 0,
-    },
-    {
-      day: 3,
-      workType: "paid",
-      workStart: null,
-      workStartType: null,
-      workEnd: null,
-      workEndType: null,
-      restStart: null,
-      restEnd: null,
-      overtimeMinutes: 0,
-    },
-    {
-      day: 4,
-      workType: "day_off",
-      workStart: null,
-      workStartType: null,
-      workEnd: null,
-      workEndType: null,
-      restStart: null,
-      restEnd: null,
-      overtimeMinutes: 0,
-    },
-    {
-      day: 5,
-      workType: "day_off",
-      workStart: null,
-      workStartType: null,
-      workEnd: null,
-      workEndType: null,
-      restStart: null,
-      restEnd: null,
-      overtimeMinutes: 0,
-    },
-  ];
-
-  for (const dayData of reonaOctoberData) {
-    await prisma.attendance.create({
-      data: {
-        userId: user1.id,
-        date: new Date(`2025-10-${dayData.day.toString().padStart(2, "0")}`),
-        workType: dayData.workType as DailyWorkType,
-        workStart: dayData.workStart,
-        workStartType: dayData.workStartType as ClockInType | null,
-        workEnd: dayData.workEnd,
-        workEndType: dayData.workEndType as ClockOutType | null,
-        restStart: dayData.restStart,
-        restEnd: dayData.restEnd,
-        overtimeMinutes: dayData.overtimeMinutes,
-      },
-    });
-  }
-
-  console.log("ReoNaの10月データを作成しました");
-
-  // ユーザー2: Aimer
-  const user2 = await prisma.user.create({
-    data: {
       id: "dummy-user-2",
       email: "aimer123@gmail.com",
       name: "Aimer",
       department: "Engineering",
       position: "Engineer",
       joinDate: new Date("2025-09-22"),
-      isActive: "Employment",
-      role: "EMPLOYEE",
       paidLeaveTotal: 20,
       paidLeaveUsed: 3,
     },
-  });
-
-  console.log("ユーザーデータを作成しました");
-
-  // Aimerの9月の勤怠データ(5日分)
-  const aimerSeptemberData = [
     {
-      day: 1,
-      workType: "night_working",
-      workStart: "20:45",
-      workStartType: "early_arrival",
-      workEnd: "06:30",
-      workEndType: "over_time",
-      restStart: "00:00",
-      restEnd: "01:00",
-      overtimeMinutes: 30,
-    },
-    {
-      day: 2,
-      workType: "day_working",
-      workStart: "09:20",
-      workStartType: "late",
-      workEnd: "18:00",
-      workEndType: "on_time",
-      restStart: "12:00",
-      restEnd: "13:00",
-      overtimeMinutes: 0,
-    },
-    {
-      day: 3,
-      workType: "absenteeism",
-      workStart: null,
-      workStartType: null,
-      workEnd: null,
-      workEndType: null,
-      restStart: null,
-      restEnd: null,
-      overtimeMinutes: 0,
-    },
-    {
-      day: 4,
-      workType: "day_working",
-      workStart: "09:00",
-      workStartType: "on_time",
-      workEnd: "22:00",
-      workEndType: "over_time",
-      restStart: "12:00",
-      restEnd: "13:00",
-      overtimeMinutes: 240,
-    },
-    {
-      day: 5,
-      workType: "paid_pending",
-      workStart: null,
-      workStartType: null,
-      workEnd: null,
-      workEndType: null,
-      restStart: null,
-      restEnd: null,
-      overtimeMinutes: 0,
-    },
-  ];
-
-  // ループで9月のデータを作成
-  for (const dayData of aimerSeptemberData) {
-    await prisma.attendance.create({
-      data: {
-        userId: user2.id,
-        date: new Date(`2025-09-${dayData.day.toString().padStart(2, "0")}`),
-        workType: dayData.workType as DailyWorkType,
-        workStart: dayData.workStart,
-        workStartType: dayData.workStartType as ClockInType | null,
-        workEnd: dayData.workEnd,
-        workEndType: dayData.workEndType as ClockOutType | null,
-        restStart: dayData.restStart,
-        restEnd: dayData.restEnd,
-        overtimeMinutes: dayData.overtimeMinutes,
-      },
-    });
-  }
-
-  console.log("Aimerの9月データを作成しました");
-
-  // Aimerの10月の勤怠データ(3日分)
-  const aimerOctoberData = [
-    {
-      day: 1,
-      workType: "night_working",
-      workStart: "21:00",
-      workStartType: "on_time",
-      workEnd: "06:00",
-      workEndType: "on_time",
-      restStart: "00:00",
-      restEnd: "01:00",
-      overtimeMinutes: 0,
-    },
-    {
-      day: 2,
-      workType: "absenteeism",
-      workStart: null,
-      workStartType: null,
-      workEnd: null,
-      workEndType: null,
-      restStart: null,
-      restEnd: null,
-      overtimeMinutes: 0,
-    },
-    {
-      day: 3,
-      workType: "day_working",
-      workStart: "09:00",
-      workStartType: "on_time",
-      workEnd: "20:00",
-      workEndType: "over_time",
-      restStart: "12:00",
-      restEnd: "13:00",
-      overtimeMinutes: 120,
-    },
-  ];
-
-  // ループで10月のデータを作成
-  for (const dayData of aimerOctoberData) {
-    await prisma.attendance.create({
-      data: {
-        userId: user2.id,
-        date: new Date(`2025-10-${dayData.day.toString().padStart(2, "0")}`),
-        workType: dayData.workType as DailyWorkType,
-        workStart: dayData.workStart,
-        workStartType: dayData.workStartType as ClockInType | null,
-        workEnd: dayData.workEnd,
-        workEndType: dayData.workEndType as ClockOutType | null,
-        restStart: dayData.restStart,
-        restEnd: dayData.restEnd,
-        overtimeMinutes: dayData.overtimeMinutes,
-      },
-    });
-  }
-
-  console.log("Aimerの10月データを作成しました");
-  console.log("シード完了!");
-
-  // ユーザー3: milet
-  const user3 = await prisma.user.create({
-    data: {
       id: "dummy-user-3",
       email: "milet123@gmail.com",
       name: "milet",
       department: "Marketing",
       position: "Manager",
       joinDate: new Date("2024-04-15"),
-      isActive: "Employment",
-      role: "EMPLOYEE",
       paidLeaveTotal: 20,
       paidLeaveUsed: 8,
     },
-  });
-
-  // miletの10月の勤怠データ
-  const miletOctoberData = [
     {
-      day: 1,
-      workType: "day_working",
-      workStart: "09:00",
-      workStartType: "on_time",
-      workEnd: "21:00",
-      workEndType: "over_time",
-      restStart: "12:00",
-      restEnd: "13:00",
-      overtimeMinutes: 180,
-    },
-    {
-      day: 2,
-      workType: "day_working",
-      workStart: "09:00",
-      workStartType: "on_time",
-      workEnd: "22:30",
-      workEndType: "over_time",
-      restStart: "12:00",
-      restEnd: "13:00",
-      overtimeMinutes: 270,
-    },
-    {
-      day: 3,
-      workType: "day_working",
-      workStart: "09:00",
-      workStartType: "on_time",
-      workEnd: "20:00",
-      workEndType: "over_time",
-      restStart: "12:00",
-      restEnd: "13:00",
-      overtimeMinutes: 120,
-    },
-    {
-      day: 4,
-      workType: "day_off",
-      workStart: null,
-      workStartType: null,
-      workEnd: null,
-      workEndType: null,
-      restStart: null,
-      restEnd: null,
-      overtimeMinutes: 0,
-    },
-    {
-      day: 5,
-      workType: "day_off",
-      workStart: null,
-      workStartType: null,
-      workEnd: null,
-      workEndType: null,
-      restStart: null,
-      restEnd: null,
-      overtimeMinutes: 0,
-    },
-  ];
-
-  for (const dayData of miletOctoberData) {
-    await prisma.attendance.create({
-      data: {
-        userId: user3.id,
-        date: new Date(`2025-10-${dayData.day.toString().padStart(2, "0")}`),
-        workType: dayData.workType as DailyWorkType,
-        workStart: dayData.workStart,
-        workStartType: dayData.workStartType as ClockInType | null,
-        workEnd: dayData.workEnd,
-        workEndType: dayData.workEndType as ClockOutType | null,
-        restStart: dayData.restStart,
-        restEnd: dayData.restEnd,
-        overtimeMinutes: dayData.overtimeMinutes,
-      },
-    });
-  }
-
-  console.log("miletの10月データを作成しました");
-
-  // ユーザー4: らでん
-  const user4 = await prisma.user.create({
-    data: {
       id: "dummy-user-4",
       email: "raden123@gmail.com",
       name: "らでん",
       department: "Finance",
       position: "Analyst",
       joinDate: new Date("2024-07-01"),
-      isActive: "Employment",
-      role: "EMPLOYEE",
       paidLeaveTotal: 20,
       paidLeaveUsed: 2,
     },
-  });
-
-  // らでんの10月の勤怠データ
-  const radenOctoberData = [
     {
-      day: 1,
-      workType: "day_working",
-      workStart: "09:00",
-      workStartType: "on_time",
-      workEnd: "18:30",
-      workEndType: "over_time",
-      restStart: "12:00",
-      restEnd: "13:00",
-      overtimeMinutes: 30,
-    },
-    {
-      day: 2,
-      workType: "day_working",
-      workStart: "09:00",
-      workStartType: "on_time",
-      workEnd: "18:00",
-      workEndType: "on_time",
-      restStart: "12:00",
-      restEnd: "13:00",
-      overtimeMinutes: 0,
-    },
-    {
-      day: 3,
-      workType: "day_working",
-      workStart: "09:00",
-      workStartType: "on_time",
-      workEnd: "19:00",
-      workEndType: "over_time",
-      restStart: "12:00",
-      restEnd: "13:00",
-      overtimeMinutes: 60,
-    },
-    {
-      day: 4,
-      workType: "day_off",
-      workStart: null,
-      workStartType: null,
-      workEnd: null,
-      workEndType: null,
-      restStart: null,
-      restEnd: null,
-      overtimeMinutes: 0,
-    },
-    {
-      day: 5,
-      workType: "day_off",
-      workStart: null,
-      workStartType: null,
-      workEnd: null,
-      workEndType: null,
-      restStart: null,
-      restEnd: null,
-      overtimeMinutes: 0,
-    },
-  ];
-
-  for (const dayData of radenOctoberData) {
-    await prisma.attendance.create({
-      data: {
-        userId: user4.id,
-        date: new Date(`2025-10-${dayData.day.toString().padStart(2, "0")}`),
-        workType: dayData.workType as DailyWorkType,
-        workStart: dayData.workStart,
-        workStartType: dayData.workStartType as ClockInType | null,
-        workEnd: dayData.workEnd,
-        workEndType: dayData.workEndType as ClockOutType | null,
-        restStart: dayData.restStart,
-        restEnd: dayData.restEnd,
-        overtimeMinutes: dayData.overtimeMinutes,
-      },
-    });
-  }
-
-  console.log("らでんの10月データを作成しました");
-
-  // ユーザー5: AZKi
-  const user5 = await prisma.user.create({
-    data: {
       id: "dummy-user-5",
       email: "azki123@gmail.com",
       name: "AZKi",
       department: "Sales",
       position: "Senior Staff",
       joinDate: new Date("2023-01-10"),
-      isActive: "Employment",
-      role: "EMPLOYEE",
       paidLeaveTotal: 20,
       paidLeaveUsed: 12,
     },
-  });
-
-  // AZKiの10月の勤怠データ
-  const azkiOctoberData = [
-    {
-      day: 1,
-      workType: "day_working",
-      workStart: "09:00",
-      workStartType: "on_time",
-      workEnd: "19:30",
-      workEndType: "over_time",
-      restStart: "12:00",
-      restEnd: "13:00",
-      overtimeMinutes: 90,
-    },
-    {
-      day: 2,
-      workType: "day_working",
-      workStart: "09:00",
-      workStartType: "on_time",
-      workEnd: "20:00",
-      workEndType: "over_time",
-      restStart: "12:00",
-      restEnd: "13:00",
-      overtimeMinutes: 120,
-    },
-    {
-      day: 3,
-      workType: "paid",
-      workStart: null,
-      workStartType: null,
-      workEnd: null,
-      workEndType: null,
-      restStart: null,
-      restEnd: null,
-      overtimeMinutes: 0,
-    },
-    {
-      day: 4,
-      workType: "day_off",
-      workStart: null,
-      workStartType: null,
-      workEnd: null,
-      workEndType: null,
-      restStart: null,
-      restEnd: null,
-      overtimeMinutes: 0,
-    },
-    {
-      day: 5,
-      workType: "day_off",
-      workStart: null,
-      workStartType: null,
-      workEnd: null,
-      workEndType: null,
-      restStart: null,
-      restEnd: null,
-      overtimeMinutes: 0,
-    },
   ];
 
-  for (const dayData of azkiOctoberData) {
-    await prisma.attendance.create({
+  const targetMonths = [
+    "2025-01",
+    "2025-02",
+    "2025-03",
+    "2025-04",
+    "2025-05",
+    "2025-06",
+    "2025-07",
+    "2025-08",
+    "2025-09",
+    "2025-10",
+    "2025-11",
+    "2025-12",
+  ];
+
+  // 各ユーザーに対してデータ作成
+  for (const userData of users) {
+    const user = await prisma.user.create({
       data: {
-        userId: user5.id,
-        date: new Date(`2025-10-${dayData.day.toString().padStart(2, "0")}`),
-        workType: dayData.workType as DailyWorkType,
-        workStart: dayData.workStart,
-        workStartType: dayData.workStartType as ClockInType | null,
-        workEnd: dayData.workEnd,
-        workEndType: dayData.workEndType as ClockOutType | null,
-        restStart: dayData.restStart,
-        restEnd: dayData.restEnd,
-        overtimeMinutes: dayData.overtimeMinutes,
+        ...userData,
+        isActive: "Employment",
+        role: "EMPLOYEE",
       },
     });
-  }
 
-  console.log("AZKiの10月データを作成しました");
-  console.log("全ユーザーのシード完了!");
+    console.log(`👤 ${user.name} を作成しました`);
+
+    for (const month of targetMonths) {
+      const attendanceRecords = [];
+
+      // 重複しない日付を生成(Setを使用)
+      const uniqueDays = new Set<number>();
+      while (uniqueDays.size < 15) {
+        uniqueDays.add(Math.floor(Math.random() * 28) + 1);
+      }
+      const days = Array.from(uniqueDays);
+
+      for (const day of days) {
+        const workType = getRandomElement(DAILY_WORK).value;
+        const workTimes = generateWorkTimes(workType);
+        const overtimeMinutes = getRandomOvertime();
+
+        attendanceRecords.push({
+          userId: user.id,
+          date: new Date(`${month}-${day.toString().padStart(2, "0")}`),
+          workType,
+          workStart: workTimes.workStart,
+          workStartType: workTimes.workStartType,
+          workEnd: workTimes.workEnd,
+          workEndType: workTimes.workEndType,
+          restStart: workTimes.restStart,
+          restEnd: workTimes.restEnd,
+          overtimeMinutes,
+        });
+      }
+
+      await prisma.attendance.createMany({
+        data: attendanceRecords,
+      });
+
+      console.log(`✅ ${month} の勤怠データを作成しました`);
+    }
+  }
 }
 
 main()

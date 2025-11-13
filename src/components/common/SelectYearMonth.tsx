@@ -17,7 +17,7 @@ const SelectYearMonth = ({
   month,
 }: YearMonthData) => {
   return (
-    <div className="flex items-center gap-2 mb-4">
+    <div className="flex items-center gap-2">
       <Select onValueChange={handleYearChange} value={year.toString()}>
         <SelectTrigger>
           <SelectValue placeholder={year} />

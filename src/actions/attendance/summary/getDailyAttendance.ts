@@ -34,7 +34,7 @@ export const getDailyAttendance = async(userId: string, year: number, month: num
 
         const attendanceData: DailyAttendanceData[] = user.attendances.map(att => ({
             date: att.date,
-            workType: att.workType,
+            workType: att.workType as DailyAttendanceData["workType"],
             workStart: att.workStart,
             workStartType: att.workStartType,
             workEnd: att.workEnd,

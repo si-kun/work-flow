@@ -33,6 +33,7 @@ const SIDEBAR_LINKS = [
     ],
   },
   { name: "プロフィール", href: "/profile" },
+  { name: "勤怠レポート", href: "/reports" },
 ];
 
 const AppSidebar = () => {
