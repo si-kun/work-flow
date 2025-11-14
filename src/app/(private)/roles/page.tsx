@@ -19,9 +19,11 @@ import {
 import { Button } from "@/components/ui/button";
 import EmployeeSearchArea from "@/components/common/EmployeeSearchArea";
 import { useState } from "react";
-import { useEmployeeFilter } from "@/hooks/useEmployeeFilter";
+import { useEmployeeFilter } from "@/hooks/user/useEmployeeFilter";
 import { Role } from "@prisma/client";
 import { updateRole } from "@/actions/users/updateRole";
+import { toast } from "sonner";
+import AdminUser from "@/components/AdminUser";
 
 const RolesPage = () => {
   const [users, setUsers] = useAtom(allUsers);
@@ -59,9 +61,11 @@ const RolesPage = () => {
           newSet.delete(userId);
           return newSet;
         });
+        toast.success("権限を更新しました。");
       }
     } catch (error) {
       console.error("Error updating roles:", error);
+      toast.error("権限の更新中にエラーが発生しました。");
     }
   };
 
@@ -90,7 +94,7 @@ const RolesPage = () => {
         <div className="border-b border-slate-300 border-l border-r">
           {searchedAndFilteredEmployees.map((user) => {
             const cellData = [
-              user.name,
+              <AdminUser key={user.id} user={user} />,
               convertToJapanese(user.position, POSITIONS),
               convertToJapanese(user.department, DEPARTMENTS),
             ];

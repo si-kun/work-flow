@@ -18,7 +18,7 @@ import { convertToJapanese } from "@/lib/convertToJapanese";
 import { DEPARTMENTS } from "@/constants/employee";
 import { useState } from "react";
 import DepartmentDetailModal from "./DepartmentDetailModal";
-import { useAttendanceData } from "@/hooks/useAttendanceData";
+import { useAttendanceData } from "@/hooks/attendance/useAttendanceData";
 
 interface OvertimeData {
   department: string;

@@ -1,11 +1,12 @@
 import { getShiftsByUserAndMonth } from "@/actions/shifts/getShiftsByUserAndMonth";
-import { ShiftTargetUser } from "@/app/(private)/shifts/create/page";
 import { ShiftSettingEvent, ShiftType } from "@/constants/calendarColor";
 import { useEffect, useRef, useState } from "react";
-import { useYearMonth } from "./useYearMonth";
+import { useYearMonth } from "../useYearMonth";
 import { DateClickArg } from "@fullcalendar/interaction/index.js";
 import { EventClickArg } from "@fullcalendar/core/index.js";
-import { createShift } from "@/actions/attendance/shift/createShift";
+import { createShift } from "@/actions/shifts/createShift";
+import { toast } from "sonner";
+import { ShiftTargetUser } from "./useShiftListData";
 
 
 interface UseShiftDialogProps {
@@ -25,7 +26,7 @@ export const useShiftDialog = ({
   const [deleteMode, setDeleteMode] = useState<boolean>(false);
   const [hasChanges, setHasChanges] = useState<boolean>(false);
 
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [calendarKey, setCalendarKey] = useState<number>(0); // カレンダーの再レンダリング用キー
@@ -36,7 +37,7 @@ export const useShiftDialog = ({
   // シフトの基準となるユーザーを選択
   const [baseUserId, setBaseUserId] = useState<string>("");
 
-  // 各ユーザーの編中シフトを保存
+  // 各ユーザーの編集中のシフトを保存
   const [editingShifts, setEditingShifts] = useState<
     Map<string, ShiftSettingEvent[]>
   >(new Map());
@@ -61,7 +62,7 @@ export const useShiftDialog = ({
   // =============== 関数 =============== //
   // リセット処理をまとめる
   const resetDialog = () => {
-    setLoading(true);
+    setLoading(false);
     setWorkType(null);
     setDeleteMode(false);
     setHasChanges(false);
@@ -172,14 +173,12 @@ export const useShiftDialog = ({
   };
 
   const submitShiftData = async () => {
+
+    setLoading(true);
+
     try {
-      console.log("保存開始");
-      console.log("対象ユーザー(ids):", ids);
-      console.log("editingShifts全体:", editingShifts);
       for (const userId of ids) {
         const userShifts = editingShifts.get(userId);
-
-        console.log(`${userId}のシフト:`, userShifts);
 
         // ユーザーがなければスキップ
         if (!userShifts || userShifts.length === 0) continue;
@@ -191,8 +190,6 @@ export const useShiftDialog = ({
           })),
         };
 
-        console.log(`${userId}の送信データ:`, submitData);
-
         // 一人ずつ保存
         const result = await createShift({
           userIds: [userId],
@@ -201,15 +198,12 @@ export const useShiftDialog = ({
           month,
         });
 
-        console.log(`${userId}の保存結果:`, result);
-
         if (!result.success) {
-          alert(result.message);
+          toast.error(result.message || "シフトの保存に失敗しました。");
           return;
         }
       }
 
-      alert("シフトを保存しました。");
       if(onSaveSuccess) {
         await onSaveSuccess();
       }
@@ -220,8 +214,16 @@ export const useShiftDialog = ({
         }))
       );
       setIsOpen(false);
+      setBaseUserId("");
+      setTargetUserIds([])
+      setEvents([])
+      setEditingShifts(new Map());
+      toast.success("シフトを保存しました。");
     } catch (error) {
+      toast.error("シフトの保存中にエラーが発生しました。");
       console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -279,6 +281,7 @@ export const useShiftDialog = ({
   // ダイアログが開いた時にカレンダーを再描画、idsをセット
   useEffect(() => {
     if (isOpen) {
+      setLoading(true);
       setTargetUserIds(ids);
 
       // 少し遅延させて再描画

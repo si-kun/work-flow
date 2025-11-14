@@ -7,13 +7,14 @@ import { Attendance, Shift } from "@prisma/client";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
 
-interface ShiftTargetUser {
+export interface ShiftTargetUser {
   id: string;
   name: string;
   department: string;
   position: string;
   shift_type: string;
   work_status: string;
+  role: string;
   select?: boolean;
 }
 
@@ -69,6 +70,7 @@ export const useShiftListData = (date: Date) => {
         name: user.name,
         department: user.department,
         position: user.position,
+        role: user.role,
         shift_type: shift?.shiftType || "未設定",
         work_status: attendance?.workType || "未設定",
       };

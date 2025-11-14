@@ -18,13 +18,13 @@ import {
 } from "@/lib/convertToJapanese";
 import { addMonths, format, subMonths } from "date-fns";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { getDailyAttendance } from "@/actions/attendance/summary/getDailyAttendance";
 import { DailyAttendanceData } from "@/types/attendance";
 
 interface AttendanceDetailDialogProps {
-  cellData: string[];
+  cellData: string[] | React.ReactNode[];
   userId: string;
   userName: string;
 }

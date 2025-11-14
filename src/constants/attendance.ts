@@ -16,6 +16,7 @@ export interface MonthlySummaryData {
   paidLeaveUsed: number;
   paidLeaveRemaining: number;
   absentDays: number;
+  role: string;
 }
 
 export const SHIFT_SETTINGS: Record<string, ShiftSettings> = {

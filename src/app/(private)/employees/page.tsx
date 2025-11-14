@@ -19,11 +19,12 @@ import { allUsers } from "@/atoms/user";
 import { ATTENDANCE_TABLE_HEADER } from "@/constants/attendance";
 import AttendanceDetailDialog from "@/components/dialog/AttendanceDetailDialog";
 import { minutesToTime } from "@/utils/timeUtils";
-import { useAttendanceData } from "@/hooks/useAttendanceData";
+import { useAttendanceData } from "@/hooks/attendance/useAttendanceData";
 import EmployeeSearchArea from "@/components/common/EmployeeSearchArea";
 import SelectYearMonth from "@/components/common/SelectYearMonth";
 import { useYearMonth } from "@/hooks/useYearMonth";
-import { useEmployeeFilter } from "@/hooks/useEmployeeFilter";
+import { useEmployeeFilter } from "@/hooks/user/useEmployeeFilter";
+import AdminUser from "@/components/AdminUser";
 
 export default function Home() {
   const [openEmployeeDialog, setOpenEmployeeDialog] = useState(false);
@@ -126,7 +127,7 @@ export default function Home() {
             <div className="flex-1 border border-t-0">
               {searchedAndFilteredEmployees.map((employee) => {
                 const cellData = [
-                  employee.name,
+                  <AdminUser key={employee.id} user={employee} />,
                   convertToJapanese(employee.department, DEPARTMENTS),
                   convertToJapanese(employee.position, POSITIONS),
                   employee.email,
@@ -184,7 +185,7 @@ export default function Home() {
           <div className="flex flex-col border border-slate-300 border-t-0">
             {filteredAttendanceData.map((data) => {
               const cellData = [
-                data.name,
+                <AdminUser key={data.userId} user={data} />,
                 convertToJapanese(data.department, DEPARTMENTS),
                 convertToJapanese(data.position, POSITIONS),
                 minutesToTime(data.totalWorkHours),

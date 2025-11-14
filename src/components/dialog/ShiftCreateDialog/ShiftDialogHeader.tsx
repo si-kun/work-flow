@@ -17,7 +17,7 @@ interface ShiftDialogHeaderProps {
   month: number;
   handleYearChange:(year: string) => void;
   handleMonthChange:(month: string) => void
-
+  baseUserId:string;
 }
 
 const ShiftDialogHeader = ({
@@ -28,9 +28,12 @@ const ShiftDialogHeader = ({
   year,
   month,
   handleYearChange,
-  handleMonthChange
+  handleMonthChange,
+  baseUserId,
 
 }: ShiftDialogHeaderProps) => {
+
+  const disabledButton = baseUserId === "";
 
   return (
     <DialogHeader className="flex flex-col gap-2">
@@ -50,6 +53,7 @@ const ShiftDialogHeader = ({
           <Button
             type="button"
             variant={"outline"}
+            disabled={disabledButton}
             key={type}
             className={`${colors.className} hover:cursor-pointer ${
               workType === type ? "ring-2 ring-offset-2 ring-green-500" : ""
@@ -63,6 +67,7 @@ const ShiftDialogHeader = ({
         <Button
           type="button"
           variant={"destructive"}
+          disabled={disabledButton}
           className={`hover:cursor-pointer ${
             deleteMode ? "ring-2 ring-offset-2 ring-red-500" : ""
           }`}

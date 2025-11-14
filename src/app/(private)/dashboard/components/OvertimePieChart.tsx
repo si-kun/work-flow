@@ -19,7 +19,7 @@ import { DEPARTMENTS } from "@/constants/employee";
 import { minutesToTime } from "@/utils/timeUtils";
 import DepartmentDetailModal from "./DepartmentDetailModal";
 import { useState } from "react";
-import { useAttendanceData } from "@/hooks/useAttendanceData";
+import { useAttendanceData } from "@/hooks/attendance/useAttendanceData";
 
 interface OvertimeData {
   department: string;

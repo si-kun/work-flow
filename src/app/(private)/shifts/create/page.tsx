@@ -12,7 +12,7 @@ import { allUsers } from "@/atoms/user";
 import EmployeeSearchArea from "@/components/common/EmployeeSearchArea";
 import { DEPARTMENTS, POSITIONS } from "@/constants/employee";
 import { SHIFT_HEADER } from "@/constants/shift";
-import { useEmployeeFilter } from "@/hooks/useEmployeeFilter";
+import { useEmployeeFilter } from "@/hooks/user/useEmployeeFilter";
 import {
   convertToJapanese,
   convertWorkTypeToJapanese,
@@ -24,7 +24,7 @@ import React, { useState } from "react";
 import ShiftCreateDialog from "@/components/dialog/ShiftCreateDialog";
 import { ShiftType } from "@/constants/calendarColor";
 import TableSkeleton from "@/components/loading/TableSkeleton";
-import { useShiftListData } from "@/hooks/useShiftListData";
+import { useShiftListData } from "@/hooks/shift/useShiftListData";
 
 const ShiftCreatePage = () => {
   const users = useAtomValue(allUsers);

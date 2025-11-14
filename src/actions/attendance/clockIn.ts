@@ -66,7 +66,7 @@ export const ClockIn = async (
     return {
       success: true,
       message: "打刻が完了しました",
-      data: result,
+      data: result as DailyAttendanceData,
     };
   } catch (error) {
     console.error(error);

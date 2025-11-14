@@ -2,13 +2,13 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
 import { Button } from "../../ui/button";
 import BaseUserSelect from "./BaseUserSelect";
-import { ShiftTargetUser } from "@/app/(private)/shifts/create/page";
 import TargetUserSelect from "./TargetUserSelect";
 import CopyShiftConfirmDialog from "./CopyShiftConfirmDialog";
 import ShiftDialogHeader from "./ShiftDialogHeader";
 import ShiftCalendar from "./ShiftCalendar";
-import { useShiftDialog } from "@/hooks/useShiftDialog";
+import { useShiftDialog } from "@/hooks/shift/useShiftDialog";
 import Loading from "@/components/loading/Loading";
+import { ShiftTargetUser } from "@/hooks/shift/useShiftListData";
 
 interface ShiftCreateDialogProps {
   userShiftData: ShiftTargetUser[];
@@ -76,6 +76,7 @@ const ShiftCreateDialog = ({
             month={month}
             handleYearChange={handleYearChange}
             handleMonthChange={handleMonthChange}
+            baseUserId={baseUserId} // 追加
           />
 
           <form className="flex flex-col gap-4 flex-1 w-full relative">

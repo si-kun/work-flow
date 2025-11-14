@@ -1,16 +1,23 @@
-import { AttendanceCardData, MonthlyStatistics } from "@/types/attendance";
+import { statisticsAtom } from "@/atoms/attendance";
+import { allUsers } from "@/atoms/user";
+import { AttendanceCardData } from "@/types/attendance";
 import { minutesToTime } from "@/utils/timeUtils";
-import { useState } from "react";
+import { useAtomValue } from "jotai";
 
 export const useAttendanceCards = () => {
-  const [stats, setStats] = useState<MonthlyStatistics>({
+
+  const users = useAtomValue(allUsers);
+
+  const loginUser = users.find((user) => user.id === "dummy-user-1");
+
+  const stats = useAtomValue(statisticsAtom) ?? {
     paidLeaveDays: 0,
     acquiredPaidLeaveDays: 0,
     workingMinutes: 0,
     nightShiftMinutes: 0,
     overtimeMinutes: 0,
     absentDays: 0,
-  });
+  };
 
   const {
     paidLeaveDays,
@@ -24,12 +31,12 @@ export const useAttendanceCards = () => {
   const ATTENDANCE_CARDS = [
     {
       title: "残りの有給日数",
-      value: acquiredPaidLeaveDays - paidLeaveDays,
+      value: loginUser?.paidLeaveTotal as number - paidLeaveDays,
       unit: "日",
     },
     {
       title: "申請中の有給日数",
-      value: 0,
+      value: acquiredPaidLeaveDays,
       unit: "日",
     },
     {
@@ -61,7 +68,6 @@ export const useAttendanceCards = () => {
 
   return {
     stats,
-    setStats,
     ATTENDANCE_CARDS,
   };
 };

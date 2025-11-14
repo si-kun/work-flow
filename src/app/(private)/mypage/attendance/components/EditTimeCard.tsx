@@ -18,9 +18,11 @@ import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import EditTimeCardButton from "./EditTimeCardButton";
 import WorkTypeSelect from "./WorkTypeSelect";
-import { useAttendanceSubmit } from "@/hooks/useAttendanceSubmit";
+import { useAttendanceSubmit } from "@/hooks/attendance/useAttendanceSubmit";
 import { useFormCancel } from "@/hooks/useFormCancel";
 import { isWorkingType } from "@/utils/attendanceUtils";
+import { useFetchAttendance } from "@/hooks/attendance/useFetchAttendance";
+import { Button } from "@/components/ui/button";
 
 interface EditTimeCardProps {
   mode: "register" | "edit";
@@ -37,12 +39,23 @@ export interface EditFormData {
 }
 
 const EditTimeCard = ({ data, mode, selectedDate }: EditTimeCardProps) => {
+  const year = selectedDate
+    ? selectedDate.getFullYear()
+    : new Date().getFullYear();
+  const month = selectedDate
+    ? selectedDate.getMonth() + 1
+    : new Date().getMonth() + 1;
+
+  const { refetch } = useFetchAttendance("dummy-user-1", year, month);
+
+  console.log(selectedDate);
 
   const [editingDialogOpen, setEditingDialogOpen] = useState(false);
   const { onSubmit } = useAttendanceSubmit({
     data,
     selectedDate,
     setEditingDialogOpen,
+    refetchAttendance: refetch,
   });
 
   // react-hook-form
@@ -104,14 +117,23 @@ const EditTimeCard = ({ data, mode, selectedDate }: EditTimeCardProps) => {
     mode === "register"
       ? `${selectedDateTitle}の勤怠を新規登録する`
       : `${selectedDateTitle}の勤怠を編集する`;
-  const buttonColor = mode === "register" ? "bg-green-300" : "bg-amber-300";
+  const buttonColor =
+    mode === "register"
+      ? "bg-green-500 hover:bg-green-400"
+      : "bg-amber-500 hover:bg-amber-400";
+
+  // disabledの条件
+  const isDisabled = !selectedDate;
 
   return (
     <Dialog open={editingDialogOpen} onOpenChange={setEditingDialogOpen}>
-      <DialogTrigger
-        className={`${buttonColor} rounded-md w-[100px] py-1 ml-auto disabled:bg-gray-300 disabled:opacity-70`}
-      >
-        {buttonText}
+      <DialogTrigger asChild>
+        <Button
+          disabled={isDisabled}
+          className={`${buttonColor} rounded-md w-[100px] py-1 ml-auto disabled:bg-gray-300 hover:cursor-pointer`}
+        >
+          {buttonText}
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

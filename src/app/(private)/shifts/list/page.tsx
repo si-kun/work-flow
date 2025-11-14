@@ -12,7 +12,7 @@ import { allUsers } from "@/atoms/user";
 import EmployeeSearchArea from "@/components/common/EmployeeSearchArea";
 import { DEPARTMENTS, POSITIONS } from "@/constants/employee";
 import { SHIFT_HEADER } from "@/constants/shift";
-import { useEmployeeFilter } from "@/hooks/useEmployeeFilter";
+import { useEmployeeFilter } from "@/hooks/user/useEmployeeFilter";
 import {
   convertToJapanese,
   convertWorkTypeToJapanese,
@@ -24,7 +24,8 @@ import React, {useState } from "react";
 import { ShiftType } from "@/constants/calendarColor";
 import ShiftListDialog from "./components";
 import TableSkeleton from "@/components/loading/TableSkeleton";
-import { useShiftListData } from "@/hooks/useShiftListData";
+import { useShiftListData } from "@/hooks/shift/useShiftListData";
+import AdminUser from "@/components/AdminUser";
 
 
 const ShiftListPage = () => {
@@ -127,7 +128,7 @@ const ShiftListPage = () => {
           ) : (
             filteredUsers.map((user) => {
               const userCellData = [
-                user.name,
+                <AdminUser key={user.id} user={user} />,
                 convertToJapanese(user.department, DEPARTMENTS),
                 convertToJapanese(user.position, POSITIONS),
                 convertWorkTypeToJapanese(user.shift_type as ShiftType),

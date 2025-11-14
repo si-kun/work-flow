@@ -177,27 +177,6 @@ const ReportsPage = () => {
               name={config.label}
             />
             ))}
-            {/* <Bar
-              stackId="attendance"
-              dataKey="nightWorking"
-              fill="var(--color-nightWorking)"
-              radius={4}
-              name="夜勤"
-            />
-            <Bar
-              stackId="attendance"
-              dataKey="paid"
-              fill="var(--color-paid)"
-              radius={4}
-              name="有給"
-            />
-            <Bar
-              stackId="attendance"
-              dataKey="absent"
-              fill="var(--color-absent)"
-              radius={4}
-              name="欠勤"
-            /> */}
           </BarChart>
         </ChartContainer>
       )}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useRef } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin, { DateClickArg } from "@fullcalendar/interaction";
@@ -9,10 +9,7 @@ import {
   CalendarEvent,
   DAILY_WORK,
   DailyWorkType,
-  MonthlyStatistics,
 } from "@/types/attendance";
-import { isSameMonth } from "date-fns";
-import { calcWorkAndOvertime } from "@/utils/attendanceCalculations";
 import { convertToJapanese } from "@/lib/convertToJapanese";
 import { useAtomValue } from "jotai";
 import { eventsAtom } from "@/atoms/attendance";
@@ -25,7 +22,6 @@ import { isWorkingType } from "@/utils/attendanceUtils";
 import { EVENT_COLORS } from "@/constants/calendarColor";
 
 interface CalendarProps {
-  setStats: React.Dispatch<React.SetStateAction<MonthlyStatistics>>;
   setSelectedDate: React.Dispatch<React.SetStateAction<Date | null>>;
   displayMonth: Date;
   setDisplayMonth: React.Dispatch<React.SetStateAction<Date>>;
@@ -34,62 +30,17 @@ interface CalendarProps {
 
 
 const Calendar = ({
-  setStats,
   setSelectedDate,
-  displayMonth,
   setDisplayMonth,
 }: CalendarProps) => {
   const calenderRef = useRef<FullCalendar>(null);
 
   const events = useAtomValue(eventsAtom);
 
-  const calculateStatistics = (events: CalendarEvent[]) => {
-    const result = events.reduce<MonthlyStatistics>(
-      (acc, ev) => {
-        const { workMinutes, overtimeMinutes, nightShiftMinutes } =
-          calcWorkAndOvertime(ev.extendedProps.workType, ev.extendedProps);
-
-        return {
-          paidLeaveDays:
-            acc.paidLeaveDays + (ev.extendedProps.workType === "paid" ? 1 : 0),
-          acquiredPaidLeaveDays:
-            acc.acquiredPaidLeaveDays +
-            (ev.extendedProps.workType === "paid_pending" ? 1 : 0),
-          workingMinutes: acc.workingMinutes + workMinutes,
-          nightShiftMinutes: acc.nightShiftMinutes + nightShiftMinutes,
-          overtimeMinutes: acc.overtimeMinutes + overtimeMinutes,
-          absentDays:
-            acc.absentDays +
-            (ev.extendedProps.workType === "absenteeism" ? 1 : 0),
-        };
-      },
-      {
-        paidLeaveDays: 0,
-        acquiredPaidLeaveDays: 0,
-        workingMinutes: 0,
-        nightShiftMinutes: 0,
-        overtimeMinutes: 0,
-        absentDays: 0,
-      }
-    );
-
-    setStats(result);
-  };
-
   const handleDatesSet = (dateInfo: DatesSetArg) => {
     setDisplayMonth(dateInfo.view.currentStart);
   };
 
-  const filteredEvents = events.filter((event) => {
-    const eventDate = new Date(event.extendedProps.date);
-    const result = isSameMonth(eventDate, displayMonth);
-    return result;
-  });
-
-  useEffect(() => {
-    calculateStatistics(filteredEvents);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [displayMonth, events]);
 
   const handleDateClick = (info: DateClickArg) => {
     setSelectedDate(new Date(info.dateStr)); // 文字列 → Date に変換

@@ -8,7 +8,11 @@ export const getAllUsers = async () :Promise<ApiResponse<User[]>> => {
 
     try {
 
-        const response = await prisma.user.findMany();
+        const response = await prisma.user.findMany({
+            orderBy: {
+                role: "asc"
+            }
+        });
 
         return {
             success: true,

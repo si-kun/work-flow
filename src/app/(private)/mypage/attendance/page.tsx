@@ -10,19 +10,21 @@ import { ja } from "date-fns/locale";
 import { useAtomValue } from "jotai";
 import { eventsAtom } from "@/atoms/attendance";
 import { isSameDate } from "@/utils/dateUtils";
-import { useFetchAttendance } from "@/hooks/useFetchAttendance";
+import { useFetchAttendance } from "@/hooks/attendance/useFetchAttendance";
 import { ClockIn } from "@/actions/attendance/clockIn";
 import { StartBreak } from "@/actions/attendance/startBreak";
 import { ClockOut } from "@/actions/attendance/clockOut";
-import { useFetchTodayAttendance } from "@/hooks/useFetchTodayAttendance";
-import { useAttendanceCards } from "@/hooks/useAttendanceCards";
+import { useFetchTodayAttendance } from "@/hooks/attendance/useFetchTodayAttendance";
+import { useAttendanceCards } from "@/hooks/attendance/useAttendanceCards";
 import ClockButton, { CLOCK_BUTTON_TEXT } from "./components/ClockButton";
-import { useAttendanceStatus } from "@/hooks/useAttendanceStatus";
+import { useAttendanceStatus } from "@/hooks/attendance/useAttendanceStatus";
+import { toast } from "sonner";
+import Loading from "@/components/loading/Loading";
 
 export type WorkStatus = "day_working" | "night_working" | "rest" | "leave";
 
 const Attendance = () => {
-  const { setStats, ATTENDANCE_CARDS } = useAttendanceCards();
+  const { ATTENDANCE_CARDS } = useAttendanceCards();
 
   const [displayMonth, setDisplayMonth] = useState<Date>(new Date());
 
@@ -32,12 +34,10 @@ const Attendance = () => {
   const year = displayMonth.getFullYear();
   const month = displayMonth.getMonth() + 1;
 
-  useFetchAttendance("dummy-user-1", year, month);
+  const {refetch,loading} = useFetchAttendance("dummy-user-1", year, month);
 
   const { todayAttendance, setTodayAttendance } =
     useFetchTodayAttendance("dummy-user-1");
-
-  console.log(todayAttendance);
 
   const events = useAtomValue<CalendarEvent[]>(eventsAtom);
 
@@ -61,8 +61,6 @@ const Attendance = () => {
   //現在のステータス
  const { canClockIn,canClockOut,canStartBreak,getCurrentStatus,getCurrentStatusColor} =  useAttendanceStatus(todayAttendance)
 
-
-
   const disabledClockButtons = {
     出勤: !canClockIn(),
     夜勤: !canClockIn(),
@@ -78,8 +76,11 @@ const Attendance = () => {
 
       if (response.success && response.data) {
         setTodayAttendance(response.data);
+        refetch();
+        toast.success("出勤しました");
       } else {
-        alert(response.message);
+        toast.error(response.message);
+        return;
       }
     }
     // 夜勤時の処理
@@ -87,8 +88,11 @@ const Attendance = () => {
       const response = await ClockIn("dummy-user-1", "night_working");
       if (response.success && response.data) {
         setTodayAttendance(response.data);
+        refetch();
+        toast.success("出勤しました");
       } else {
-        alert(response.message);
+        toast.error(response.message);
+        return;
       }
     }
     // 休憩時の処理
@@ -96,6 +100,7 @@ const Attendance = () => {
       const response = await StartBreak("dummy-user-1");
       if (response.success && response.data) {
         setTodayAttendance(response.data);
+        toast.success("休憩を開始しました");
       } else {
         alert(response.message);
         return;
@@ -106,12 +111,18 @@ const Attendance = () => {
       const response = await ClockOut("dummy-user-1");
       if (response.success && response.data) {
         setTodayAttendance(response.data);
+        refetch();
+        toast.success("退勤しました");
       } else {
-        alert(response.message);
+        toast.error(response.message);
         return;
       }
     }
   };
+
+  if(loading){
+    return <div><Loading /></div>
+  }
 
   return (
     <div className="grid grid-cols-2 gap-10 h-screen overflow-hidden">
@@ -147,7 +158,6 @@ const Attendance = () => {
         </div>
         {/* ======== 表示するカレンダーのエリア ======== */}
         <Calendar
-          setStats={setStats}
           setSelectedDate={setSelectedDate}
           displayMonth={displayMonth}
           setDisplayMonth={setDisplayMonth}
