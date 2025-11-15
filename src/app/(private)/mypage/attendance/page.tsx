@@ -20,6 +20,7 @@ import ClockButton, { CLOCK_BUTTON_TEXT } from "./components/ClockButton";
 import { useAttendanceStatus } from "@/hooks/attendance/useAttendanceStatus";
 import { toast } from "sonner";
 import Loading from "@/components/loading/Loading";
+import { Button } from "@/components/ui/button";
 
 export type WorkStatus = "day_working" | "night_working" | "rest" | "leave";
 
@@ -29,12 +30,25 @@ const Attendance = () => {
   const [displayMonth, setDisplayMonth] = useState<Date>(new Date());
 
   // 現在の日時
-  const now = new Date();
+  const [now, setNow] = useState(new Date());
+
+  // useEffect で1秒ごとに時刻を更新
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 1000); // 1000ミリ秒 = 1秒
+
+    // クリーンアップ関数
+    return () => {
+      clearInterval(timer);
+    };
+  }, []);
+
   const nowDisplay = format(now, "HH:mm:ss");
   const year = displayMonth.getFullYear();
   const month = displayMonth.getMonth() + 1;
 
-  const {refetch,loading} = useFetchAttendance("dummy-user-1", year, month);
+  const { refetch, loading } = useFetchAttendance("dummy-user-1", year, month);
 
   const { todayAttendance, setTodayAttendance } =
     useFetchTodayAttendance("dummy-user-1");
@@ -59,7 +73,13 @@ const Attendance = () => {
   }, [selectedDate, events]);
 
   //現在のステータス
- const { canClockIn,canClockOut,canStartBreak,getCurrentStatus,getCurrentStatusColor} =  useAttendanceStatus(todayAttendance)
+  const {
+    canClockIn,
+    canClockOut,
+    canStartBreak,
+    getCurrentStatus,
+    getCurrentStatusColor,
+  } = useAttendanceStatus(todayAttendance);
 
   const disabledClockButtons = {
     出勤: !canClockIn(),
@@ -120,8 +140,35 @@ const Attendance = () => {
     }
   };
 
-  if(loading){
-    return <div><Loading /></div>
+  const calendarPrevClick = () => {
+    setDisplayMonth((prev) => {
+      const prevMonth = new Date(prev.getFullYear(), prev.getMonth() - 1, 1);
+      return prevMonth;
+    });
+  };
+
+  const calendarNextClick = () => {
+    setDisplayMonth((prev) => {
+      const nextMonth = new Date(prev.getFullYear(), prev.getMonth() + 1, 1);
+      return nextMonth;
+    });
+  };
+
+  const calendarTodayClick = () => {
+    setDisplayMonth(new Date());
+  };
+
+  useEffect(() => {
+    refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayMonth]);
+
+  if (loading) {
+    return (
+      <div>
+        <Loading />
+      </div>
+    );
   }
 
   return (
@@ -149,7 +196,9 @@ const Attendance = () => {
             className={`flex flex-col ${getCurrentStatusColor()} p-4 rounded-lg ml-auto`}
           >
             <span
-              className={`${getCurrentStatusColor() ? "text-black" : "text-white"}`}
+              className={`${
+                getCurrentStatusColor() ? "text-black" : "text-white"
+              }`}
             >
               現在のステータス:
               <span className="font-bold">{getCurrentStatus()}</span>
@@ -157,11 +206,23 @@ const Attendance = () => {
           </div>
         </div>
         {/* ======== 表示するカレンダーのエリア ======== */}
-        <Calendar
-          setSelectedDate={setSelectedDate}
-          displayMonth={displayMonth}
-          setDisplayMonth={setDisplayMonth}
-        />
+        <div>
+          {/* カスタムヘッダーナビ */}
+          <div className="flex items-center justify-between mb-4 mt-6">
+            <h3 className="font-bold text-2xl">
+              {format(displayMonth, "yyyy-MM")}
+            </h3>
+            <div className="flex items-center gap-1">
+              <Button onClick={calendarPrevClick}>←</Button>
+              <Button onClick={calendarTodayClick}>今日</Button>
+              <Button onClick={calendarNextClick}>→</Button>
+            </div>
+          </div>
+          <Calendar
+            setSelectedDate={setSelectedDate}
+            displayMonth={displayMonth}
+          />
+        </div>
       </div>
       {/* ======== 右側のエリア ======== */}
       <div>
@@ -187,8 +248,16 @@ const Attendance = () => {
 
           {/* 勤怠データ */}
           <div className="flex gap-4">
-            <AttendanceCard todayAttendance={todayAttendance} selectedDate={new Date()} title={"今日の勤怠"} />
-            <AttendanceCard selectedAttendance={selectedAttendance} selectedDate={selectedDate} title={"選択した勤怠"} />
+            <AttendanceCard
+              todayAttendance={todayAttendance}
+              selectedDate={new Date()}
+              title={"今日の勤怠"}
+            />
+            <AttendanceCard
+              selectedAttendance={selectedAttendance}
+              selectedDate={selectedDate}
+              title={"選択した勤怠"}
+            />
           </div>
         </div>
       </div>

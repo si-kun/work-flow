@@ -14,7 +14,7 @@ export const useFetchTodayAttendance = (userId: string) => {
         const response = await getTodayAttendance(userId);
 
         if (response.success && response.data) {
-          setTodayAttendance(response.data);
+          setTodayAttendance(response.data as DailyAttendanceData);
         }
       } catch (error) {
         console.error(error);

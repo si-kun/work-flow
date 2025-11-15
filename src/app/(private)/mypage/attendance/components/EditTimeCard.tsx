@@ -48,8 +48,6 @@ const EditTimeCard = ({ data, mode, selectedDate }: EditTimeCardProps) => {
 
   const { refetch } = useFetchAttendance("dummy-user-1", year, month);
 
-  console.log(selectedDate);
-
   const [editingDialogOpen, setEditingDialogOpen] = useState(false);
   const { onSubmit } = useAttendanceSubmit({
     data,

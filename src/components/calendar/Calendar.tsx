@@ -1,46 +1,27 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, {useRef } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin, { DateClickArg } from "@fullcalendar/interaction";
 import jaLocale from "@fullcalendar/core/locales/ja";
-import {
-  CalendarEvent,
-  DAILY_WORK,
-  DailyWorkType,
-} from "@/types/attendance";
+import { CalendarEvent, DAILY_WORK, DailyWorkType } from "@/types/attendance";
 import { convertToJapanese } from "@/lib/convertToJapanese";
 import { useAtomValue } from "jotai";
 import { eventsAtom } from "@/atoms/attendance";
-import {
-  DatesSetArg,
-  EventClickArg,
-  EventContentArg,
-} from "@fullcalendar/core/index.js";
+import { EventClickArg, EventContentArg } from "@fullcalendar/core/index.js";
 import { isWorkingType } from "@/utils/attendanceUtils";
 import { EVENT_COLORS } from "@/constants/calendarColor";
 
 interface CalendarProps {
   setSelectedDate: React.Dispatch<React.SetStateAction<Date | null>>;
   displayMonth: Date;
-  setDisplayMonth: React.Dispatch<React.SetStateAction<Date>>;
 }
 
-
-
-const Calendar = ({
-  setSelectedDate,
-  setDisplayMonth,
-}: CalendarProps) => {
+const Calendar = ({ setSelectedDate, displayMonth }: CalendarProps) => {
   const calenderRef = useRef<FullCalendar>(null);
 
-  const events = useAtomValue(eventsAtom);
-
-  const handleDatesSet = (dateInfo: DatesSetArg) => {
-    setDisplayMonth(dateInfo.view.currentStart);
-  };
-
+  const eventAtom = useAtomValue(eventsAtom);
 
   const handleDateClick = (info: DateClickArg) => {
     setSelectedDate(new Date(info.dateStr)); // 文字列 → Date に変換
@@ -55,17 +36,19 @@ const Calendar = ({
       EVENT_COLORS[type] || { bgColor: "bg-blue-500", textColor: "text-white" }
     );
   };
-  
+
   return (
     <FullCalendar
       ref={calenderRef}
-      datesSet={handleDatesSet}
+      key={displayMonth.toISOString().slice(0.7)}
+      initialDate={displayMonth}
       locale={jaLocale}
       plugins={[dayGridPlugin, interactionPlugin]}
       initialView="dayGridMonth"
       height="auto"
       dateClick={handleDateClick}
-      events={events}
+      events={eventAtom}
+      headerToolbar={false}
       eventDisplay="block"
       eventContent={(arg: EventContentArg) => {
         const extendProps = arg.event

@@ -22,6 +22,12 @@ export const getMonthlyAttendance = async ({
   year,
   month,
 }: GetMonthlyAttendanceProps): Promise<ApiResponse<MonthlyAttendanceData>> => {
+
+  // console.log("========================================");
+  // console.log("🔧 getMonthlyAttendance SERVER ACTION");
+  // console.log("📅 Received year:", year);
+  // console.log("📅 Received month:", month);
+  // console.log("👤 userId:", userId);
   try {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0);
