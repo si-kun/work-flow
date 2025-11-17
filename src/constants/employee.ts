@@ -1,8 +1,9 @@
 import { EmployeeFormData } from "@/types/employee/schema";
 
-interface EmployeeTableHeader {
+export interface TableHeader {
   id: string;
   label: string;
+  width: string;
 }
 
 interface EmployeeInputField {
@@ -16,32 +17,38 @@ interface EmployeeInputField {
   }[];
 }
 
-export const EMPLOYEES_TABLE_HEADER = [
+export const EMPLOYEES_TABLE_HEADER:TableHeader[] = [
   {
     id: "name",
     label: "名前",
+    width: "300px"
   },
   {
     id: "department",
     label: "部署",
+    width: "200px"
   },
   {
     id: "position",
     label: "役職",
+    width: "200px"
   },
   {
     id: "email",
     label: "メールアドレス",
+    width: "400px"
   },
   {
     id: "joinDate",
     label: "入社日",
+    width: "200px"
   },
   {
     id: "isActive",
     label: "在籍状況",
+    width: "200px"
   },
-] as EmployeeTableHeader[];
+] 
 
 export const DEPARTMENTS = [
   { label: "全部署", value: "All" },

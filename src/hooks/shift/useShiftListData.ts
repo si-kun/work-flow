@@ -24,7 +24,7 @@ export const useShiftListData = (date: Date) => {
     []
   );
 
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
   const [allShiftData, setAllShiftData] = useState<Shift[]>([]);
   const [allAttendanceData, setAllAttendanceData] = useState<Attendance[]>([]);
 

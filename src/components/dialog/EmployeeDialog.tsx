@@ -54,6 +54,7 @@ import { User } from "@prisma/client";
 import { updateEmployee } from "@/actions/auth/updateEmployee";
 import { deleteEmployee } from "@/actions/auth/deleteEmployee";
 import { allUsers } from "@/atoms/user";
+import { toast } from "sonner";
 
 interface EmployeeDialogProps {
   openEmployeeDialog: boolean;
@@ -70,6 +71,8 @@ const EmployeeDialog = ({
   editEmployee,
   setEditEmployeeId,
 }: EmployeeDialogProps) => {
+
+  console.log(editEmployee)
   const [open, setOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
@@ -145,22 +148,22 @@ const EmployeeDialog = ({
               user.id === editEmployee.id ? { ...user, ...data } : user
             )
           );
-          console.log("更新完了:", result.message);
+          toast.success("更新完了:", result.message);
           reset();
           setOpenEmployeeDialog(false);
         } else {
-          console.error("更新失敗:", result.message);
+          toast.error("更新失敗:", result.message);
         }
       } else {
         const result = await addEmployee(data);
 
         if (result.success) {
           setAllUser((prev) => [...prev, result.data!]);
-          console.log("登録完了:", result.message);
+          toast.success("登録完了:", result.message);
           reset();
           setOpenEmployeeDialog(false);
         } else {
-          console.error("登録失敗:", result.message);
+          toast.error("登録失敗:", result.message);
         }
       }
     } catch (error) {
@@ -200,7 +203,7 @@ const EmployeeDialog = ({
       </DialogTrigger>
       <DialogContent className="">
         <DialogHeader>
-          <DialogTitle>新規従業員を登録する</DialogTitle>
+          <DialogTitle>{mode === "add" ? "新規従業員を追加" : `${editEmployee?.name}を編集`}</DialogTitle>
           <DialogDescription>
             {mode === "add"
               ? "新規従業員を登録します。必要な情報を入力してください。"

@@ -1,7 +1,5 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
-import { ShiftTargetUser } from "@/app/(private)/shifts/create/page";
-
 import ShiftCalendar from "@/components/dialog/ShiftCreateDialog/ShiftCalendar";
 import { useEffect, useState } from "react";
 import { ShiftSettingEvent } from "@/constants/calendarColor";
@@ -9,6 +7,8 @@ import { getShiftsByUserAndMonth } from "@/actions/shifts/getShiftsByUserAndMont
 import ShiftListDialogHeader from "./ShiftListDialogHeader";
 import { useYearMonth } from "@/hooks/useYearMonth";
 import Loading from "@/components/loading/Loading";
+import { toast } from "sonner";
+import { ShiftTargetUser } from "@/hooks/shift/useShiftListData";
 
 interface ShiftCreateDialogProps {
   userShiftData: ShiftTargetUser[];
@@ -33,33 +33,52 @@ const ShiftListDialog = ({
     setCalendarKey((prev) => prev + 1);
   }, [year, month]);
 
+  // useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     setLoading(false);
+  //     setCalendarKey((prev) => prev + 1);
+  //   }, 1000);
+
+  //   return () => clearTimeout(timer);
+  // }, [isOpen]);
+
   useEffect(() => {
     // シフトを取得
     const fetchShifts = async () => {
-      if (!userId) return;
+      if(!isOpen || !userId) return;
 
-      setLoading(true);
+      try {
+        if (!userId) return;
+        setLoading(true);
 
-      const response = await getShiftsByUserAndMonth({
-        userId,
-        year,
-        month,
-      });
+        const response = await getShiftsByUserAndMonth({
+          userId,
+          year,
+          month,
+        });
 
-      if (response.success) {
-        const newEvents = response.data.map((shift) => ({
-          title: shift.shiftType,
-          start: shift.date.toISOString().split("T")[0],
-          end: shift.date.toISOString().split("T")[0],
-          allDay: true,
-        }));
+        if (response.success) {
+          const newEvents = response.data.map((shift) => ({
+            title: shift.shiftType,
+            start: shift.date.toISOString().split("T")[0],
+            end: shift.date.toISOString().split("T")[0],
+            allDay: true,
+          }));
 
-        setEvents(newEvents);
+          setEvents(newEvents);
+        }
+      } catch (error) {
+        console.error("シフトの取得に失敗しました:", error);
+        toast.error("シフトの取得に失敗しました");
+      } finally {
+        setTimeout(() => {
+          setLoading(false);
+          setCalendarKey((prev) => prev + 1);
+        }, 300);
       }
-      setLoading(false);
     };
     fetchShifts();
-  }, [userId, year, month]);
+  }, [isOpen,userId, year, month]);
 
   const userName = userShiftData.find((user) => user.id === userId)?.name || "";
 
@@ -91,7 +110,7 @@ const ShiftListDialog = ({
                 events={events}
                 year={year}
                 month={month}
-                isUpdatingFromCalendar={{current: false}}
+                isUpdatingFromCalendar={{ current: false }}
                 handleYearChange={handleYearChange}
                 handleMonthChange={handleMonthChange}
                 handleClickDate={() => {}}

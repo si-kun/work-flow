@@ -1,24 +1,28 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "../ui/skeleton";
 
 interface TableSkeletonProps {
   rows?: number;
-  columns?: number;
+  gridTemplateColumns: string; // ← 追加
 }
 
-const TableSkeleton = ({ rows = 5, columns = 5 }: TableSkeletonProps) => {
+const TableSkeleton = ({ rows = 5, gridTemplateColumns }: TableSkeletonProps) => {
   return (
     <>
       {Array.from({ length: rows }).map((_, rowIndex) => (
-        <li key={rowIndex} className="contents">
-          {Array.from({ length: columns }).map((_, colIndex) => (
+        <div
+          key={rowIndex}
+          className="grid items-center border-b border-slate-300"
+          style={{ gridTemplateColumns }} // ← 追加
+        >
+          {gridTemplateColumns.split(" ").map((_, colIndex) => (
             <div
               key={colIndex}
-              className="p-2 border-b border-r border-slate-300"
+              className="px-3 py-3 border-r border-slate-300 last:border-r-0"
             >
               <Skeleton className="h-5 w-full" />
             </div>
           ))}
-        </li>
+        </div>
       ))}
     </>
   );

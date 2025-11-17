@@ -24,6 +24,7 @@ import { Role } from "@prisma/client";
 import { updateRole } from "@/actions/users/updateRole";
 import { toast } from "sonner";
 import AdminUser from "@/components/AdminUser";
+import DataTable from "@/components/common/DataTable";
 
 const RolesPage = () => {
   const [users, setUsers] = useAtom(allUsers);
@@ -70,7 +71,7 @@ const RolesPage = () => {
   };
 
   return (
-    <div className="w-full flex flex-col gap-4">
+    <div className="w-full h-full flex flex-col gap-4">
       <h2 className="text-2xl font-bold">権限管理ページ</h2>
       <EmployeeSearchArea
         users={users}
@@ -80,72 +81,54 @@ const RolesPage = () => {
         setSearchEmployee={setSearchEmployee}
       />
 
-      <div>
-        {/* ヘッダー */}
-        <div className="grid grid-cols-4 items-center border border-gray-300 bg-gray-200 font-bold sticky top-0 z-10">
-          {ROLES_HEADER.map((header, index) => (
-            <span key={index} className="px-3 py-2.5 border-r border-gray-300">
-              {header}
-            </span>
-          ))}
-        </div>
-
-        {/* データ部分 */}
-        <div className="border-b border-slate-300 border-l border-r">
-          {searchedAndFilteredEmployees.map((user) => {
-            const cellData = [
+      <div className="overflow-y-auto flex-1">
+        <DataTable
+          headers={ROLES_HEADER}
+          rows={searchedAndFilteredEmployees.map((user) => ({
+            id: user.id,
+            data: [
               <AdminUser key={user.id} user={user} />,
               convertToJapanese(user.position, POSITIONS),
               convertToJapanese(user.department, DEPARTMENTS),
-            ];
+            ],
+          }))}
+          renderLastCell={(rowId) => {
+            const user = users.find((u) => u.id === rowId);
+            if (!user) return null;
 
             return (
-              <div
-                key={user.id}
-                className="grid grid-cols-4 items-center border-b border-slate-300 last:border-b-0"
-              >
-                {cellData.map((data, idx) => (
-                  <span
-                    key={idx}
-                    className="px-3 py-2.5 border-r border-slate-300 last:border-r-0"
+              <div className="flex items-center gap-2 ml-3">
+                <Select
+                  defaultValue={user.role}
+                  onValueChange={(newRole: Role) =>
+                    handleRoleChange(user.id, newRole)
+                  }
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EMPLOYMENT_ROLES.map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        {role.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {changedUserIds.has(user.id) && (
+                  <Button
+                    onClick={() => submitRoleUpdates(user.id, user.role)}
+                    type="button"
+                    className="bg-green-600 hover:bg-green-500 hover:cursor-pointer"
                   >
-                    {data}
-                  </span>
-                ))}
-                {/* 権限部分 */}
-                <div className="flex items-center gap-2 ml-3">
-                  <Select
-                    defaultValue={user.role}
-                    onValueChange={(newRole: Role) =>
-                      handleRoleChange(user.id, newRole)
-                    }
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {EMPLOYMENT_ROLES.map((role) => (
-                        <SelectItem key={role.value} value={role.value}>
-                          {role.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {/* valueが変わったら更新ボタンを表示 */}
-                  {changedUserIds.has(user.id) && (
-                    <Button
-                      onClick={() => submitRoleUpdates(user.id, user.role)}
-                      type="button"
-                      className="bg-green-600 hover:bg-green-500 hover:cursor-pointer"
-                    >
-                      更新
-                    </Button>
-                  )}
-                </div>
+                    更新
+                  </Button>
+                )}
               </div>
             );
-          })}
-        </div>
+          }}
+        />
       </div>
     </div>
   );

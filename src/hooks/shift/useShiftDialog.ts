@@ -285,10 +285,12 @@ export const useShiftDialog = ({
       setTargetUserIds(ids);
 
       // 少し遅延させて再描画
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         setLoading(false);
         setCalendarKey((prev) => prev + 1);
       }, 300);
+
+      return () => clearInterval(timer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);

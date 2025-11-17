@@ -23,8 +23,9 @@ import { useAtomValue } from "jotai";
 import React, { useState } from "react";
 import ShiftCreateDialog from "@/components/dialog/ShiftCreateDialog";
 import { ShiftType } from "@/constants/calendarColor";
-import TableSkeleton from "@/components/loading/TableSkeleton";
 import { useShiftListData } from "@/hooks/shift/useShiftListData";
+import DataTable from "@/components/common/DataTable";
+import AdminUser from "@/components/AdminUser";
 
 const ShiftCreatePage = () => {
   const users = useAtomValue(allUsers);
@@ -62,7 +63,7 @@ const ShiftCreatePage = () => {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full h-full flex flex-col">
       <header className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
@@ -112,53 +113,23 @@ const ShiftCreatePage = () => {
           setSearchEmployee={setSearchEmployee}
         />
       </header>
-      <div className="">
-        <ul className="grid grid-cols-5 border border-slate-300 bg-slate-100 font-semibold sticky top-0 z-10">
-          {SHIFT_HEADER.map((status) => {
-            return (
-              <li
-                key={status.value}
-                className="p-2 border-r border-slate-300 last:border-r-0"
-              >
-                {status.label}
-              </li>
-            );
-          })}
-        </ul>
-        <ul className="grid grid-cols-5 border-slate-300 border-l border-r">
-          {loading ? (
-            <TableSkeleton />
-          ) : (
-            filteredUsers.map((user) => {
-              const userCellData = [
-                user.name,
-                convertToJapanese(user.department, DEPARTMENTS),
-                convertToJapanese(user.position, POSITIONS),
-                convertWorkTypeToJapanese(user.shift_type as ShiftType),
-                convertWorkTypeToJapanese(user.work_status as DailyWorkType),
-              ];
-
-              return (
-                <li
-                  key={user.id}
-                  className="contents group cursor-pointer"
-                  onClick={() => handleSelect(user.id)}
-                >
-                  {userCellData.map((data, index) => (
-                    <div
-                      key={`${user.id}-${index}`}
-                      className={`p-2 border-b border-r border-slate-300 group-hover:bg-slate-50 ${
-                        user.select ? "bg-amber-200" : ""
-                      }`}
-                    >
-                      {data}
-                    </div>
-                  ))}
-                </li>
-              );
-            })
-          )}
-        </ul>
+      <div className="overflow-y-auto flex-1">
+        <DataTable
+        headers={SHIFT_HEADER}
+        rows={filteredUsers.map((user) => ({
+          id: user.id,
+          isSelected: user.select,
+          data: [
+            <AdminUser key={user.id} user={user} />,
+            convertToJapanese(user.department, DEPARTMENTS),
+            convertToJapanese(user.position, POSITIONS),
+            convertWorkTypeToJapanese(user.shift_type as ShiftType),
+            convertWorkTypeToJapanese(user.work_status as DailyWorkType),
+          ]
+        }))}
+        onRowClick={(id) => handleSelect(id)}
+        loading={loading}
+        />
       </div>
     </div>
   );

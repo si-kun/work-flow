@@ -1,22 +1,27 @@
-"use client"
+"use client";
 
+import Loading from "@/components/loading/Loading";
 import AppSidebar from "@/components/sidebar/Sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useFetchAllUsers } from "@/hooks/user/useFetchAllUser";
 import React from "react";
 
-const PrivateLayout = ( {children} : React.ReactNode) => {
+interface PrivateLayoutProps {
+  children: React.ReactNode;
+}
 
-  useFetchAllUsers();
+const PrivateLayout = ({ children }: PrivateLayoutProps) => {
+  const {loading} = useFetchAllUsers();
+
+  if(loading) {
+    return <Loading />
+  }
 
   return (
     <div>
       <SidebarProvider>
         <AppSidebar />
-        <div className="p-4 w-full h-screen overflow-hidden">
-
-        {children}
-        </div>
+        <div className="p-4 w-full h-screen overflow-hidden">{children}</div>
       </SidebarProvider>
     </div>
   );
