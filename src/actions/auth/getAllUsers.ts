@@ -10,7 +10,7 @@ export const getAllUsers = async () :Promise<ApiResponse<User[]>> => {
 
         const response = await prisma.user.findMany({
             orderBy: {
-                role: "asc"
+                joinDate: "asc",
             }
         });
 

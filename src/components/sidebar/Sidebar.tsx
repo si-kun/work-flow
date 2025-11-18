@@ -13,6 +13,7 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const SIDEBAR_LINKS = [
   { name: "Home", href: "/mypage/attendance" },
@@ -37,38 +38,58 @@ const SIDEBAR_LINKS = [
 ];
 
 const AppSidebar = () => {
+  const pathname = usePathname();
+
+  const activeClass = "bg-green-400 rounded-lg hover:bg-green-300";
+  const inactiveClass = "hover:bg-green-300";
+
   return (
     <Sidebar>
       <SidebarHeader />
-      <SidebarContent>
+      <SidebarContent className="p-4">
         <SidebarGroup />
         <SidebarGroupLabel></SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu className="flex flex-col gap-2">
-            {SIDEBAR_LINKS.map((link) =>
-              link.children ? (
+            {SIDEBAR_LINKS.map((link) => {
+              const isActive = pathname === link.href;
+              return link.children ? (
                 <SidebarMenuItem key={link.name}>
                   <SidebarMenuButton asChild>
                     <span>{link.name}</span>
                   </SidebarMenuButton>
                   <SidebarMenuSub>
-                    {link.children.map((subLink) => (
-                      <SidebarMenuSubItem key={subLink.name}>
-                        <SidebarMenuButton asChild>
-                          <Link href={subLink.href}>{subLink.name}</Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuSubItem>
-                    ))}
+                    {link.children.map((subLink) => {
+                      const isSubActive = pathname === subLink.href;
+                      return (
+                        <SidebarMenuSubItem key={subLink.name}>
+                          <SidebarMenuButton
+                            asChild
+                            className={
+                              isSubActive ? activeClass : inactiveClass
+                            }
+                          >
+                            <Link href={subLink.href}>{subLink.name}</Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuSubItem>
+                      );
+                    })}
                   </SidebarMenuSub>
                 </SidebarMenuItem>
               ) : (
                 <SidebarMenuItem key={link.name}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton
+                    asChild
+                    className={
+                      isActive
+                      ? activeClass : inactiveClass
+                    }
+                  >
                     <Link href={link.href}>{link.name}</Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              )
-            )}
+              );
+            })}
           </SidebarMenu>
         </SidebarGroupContent>
         <SidebarGroup />
