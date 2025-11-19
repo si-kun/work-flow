@@ -42,7 +42,6 @@ const EmployeeDialog = ({
   editEmployee,
   setEditEmployeeId,
 }: EmployeeDialogProps) => {
-  console.log(editEmployee);
   const [open, setOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
@@ -97,6 +96,15 @@ const EmployeeDialog = ({
   const onSubmit = async (data: EmployeeFormData) => {
     try {
       if (mode === "edit" && editEmployee) {
+
+        if(data.email !== editEmployee.email) {
+          const emailResult = await updateEmployee(editEmployee.id, {...data,email: data.email})
+          if (!emailResult.success) {
+            toast.error(`更新失敗:${emailResult.message}`);
+            return;
+          }
+        }
+        
         const result = await updateEmployee(editEmployee.id, data);
 
         if (result.success) {
