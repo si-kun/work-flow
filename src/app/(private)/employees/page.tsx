@@ -1,7 +1,7 @@
 "use client";
 
 import { useAtomValue } from "jotai";
-import EmployeeDialog from "../../../components/dialog/EmployeeDialog";
+import EmployeeDialog from "../../../components/dialog/employeeDialog";
 import {
   DEPARTMENTS,
   EMPLOYEES_TABLE_HEADER,

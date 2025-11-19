@@ -10,11 +10,16 @@ interface EmployeeInputField {
   name: keyof EmployeeFormData;
   label: string;
   placeholder: string;
-  type?: "text" | "date" | "email" | "select";
+  type?: "text" | "date" | "email" | "select" | "radio";
   options?: readonly {
     label: string;
     value: string;
   }[];
+}
+
+interface SelectOption {
+  label: string;
+  value: string;
 }
 
 export const EMPLOYEES_TABLE_HEADER:TableHeader[] = [
@@ -50,7 +55,7 @@ export const EMPLOYEES_TABLE_HEADER:TableHeader[] = [
   },
 ] 
 
-export const DEPARTMENTS = [
+export const DEPARTMENTS: readonly SelectOption[] = [
   { label: "全部署", value: "All" },
   { label: "人事部", value: "Human Resources" },
   { label: "営業部", value: "Sales" },
@@ -61,9 +66,9 @@ export const DEPARTMENTS = [
   { label: "デザイン部", value: "Design" },
   { label: "未配属", value: "Unassigned" },
   { label: "その他", value: "Other" },
-] as const;
+]
 
-export const POSITIONS = [
+export const POSITIONS: readonly SelectOption[] = [
   { label: "スタッフ", value: "Staff" },
   { label: "主任", value: "Senior Staff" },
   { label: "係長", value: "Assistant Manager" },
@@ -79,19 +84,18 @@ export const POSITIONS = [
   { label: "デザイナー", value: "Designer" },
   { label: "シニアデザイナー", value: "Senior Designer" },
   { label: "アナリスト", value: "Analyst" },
-] as const;
-
-export const EMPLOYMENT_STATUS = [
+]
+export const EMPLOYMENT_STATUS: readonly SelectOption[] = [
   { label: "就業中", value: "Employment" },
   { label: "休職", value: "Leave" },
   { label: "退職", value: "Retirement" },
   { label: "入社予定", value: "PlannedJoining" },
-] as const;
+]
 
-export const EMPLOYMENT_ROLES = [
+export const EMPLOYMENT_ROLES: readonly SelectOption[] = [
   { label: "管理者", value: "ADMIN" },
   { label: "一般ユーザー", value: "EMPLOYEE" },
-] as const;
+]
 
 export const EMPLOYEE_INPUT_FIELDS = [
   {
@@ -130,7 +134,7 @@ export const EMPLOYEE_INPUT_FIELDS = [
   {
     name: "isActive",
     label: "在籍状況",
-    type: "select",
+    type: "radio",
     placeholder: "在籍状況を選択してください",
     options: EMPLOYMENT_STATUS,
   },
